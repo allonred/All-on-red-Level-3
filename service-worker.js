@@ -1,3 +1,2 @@
-// Level 3 v0.1: do not install an offline service worker during early testing.
-self.addEventListener('install',e=>self.skipWaiting());
-self.addEventListener('activate',e=>e.waitUntil(self.registration.unregister()));
+// Level 3 v0.2: unregister service worker so iOS always receives new audio.
+self.addEventListener('install',()=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(self.registration.unregister()));
