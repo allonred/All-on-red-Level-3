@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#10162e"><title>ALL ON RED! — LEVEL 3 · THE FUTURE · v0.11</title><style>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#10162e"><title>ALL ON RED! — LEVEL 3 · THE FUTURE · v0.12</title><style>
 :root{--ink:#171927;--cream:#fff2c6;--pink:#d63444}
 *{box-sizing:border-box;touch-action:none;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#18213b;color:#fff;font:900 13px system-ui,Arial,sans-serif;user-select:none;-webkit-user-select:none}
@@ -143,7 +143,7 @@ body.film #subtitle{bottom:28px}
 <button id="skip">SKIP ▶▶</button>
 <div id="subtitle"><div class="who" id="speaker">RED MAN</div><div class="line" id="spoken">...</div></div><div id="prompt"></div><button id="contextAction" aria-label="Talk or examine">TALK</button>
 <div class="screen" id="menu"><div class="panel"><div class="logo">ALL ON RED!</div>
- <div class="subtitle">LEVEL 3 · THE FUTURE · v0.11</div>
+ <div class="subtitle">LEVEL 3 · THE FUTURE · v0.12</div>
  <div class="desc">The portal has thrown Red Man into a future full of flying cars, baffling citizens and mysterious goggles. Climb futuristic walkways, battle malfunctioning robots and explore. Collect all 27 coins for the optional 100% clear!</div>
  <button class="go" id="start">START LEVEL 3</button><button class="go" id="audioTestMenu" style="margin-left:7px;background:#295975;font-size:12px">♪ TEST SOUND</button>
  <div id="audioStatus" role="status" style="font-size:10px;font-weight:900;margin-top:4px">Audio: tap TEST SOUND to enable</div>
@@ -275,7 +275,7 @@ const citizens=[
  {x:4000,type:'B',talk:'N05'},
  {x:5520,type:'C',talk:'N06'},
  {x:7110,type:'A',talk:'N07'},
- {x:1672,type:'B',sceneActor:'S05'},
+ {x:1601,type:'B',sceneActor:'S05'},
  {x:3020,type:'A',sceneActor:'S06'},
  {x:4387,type:'C',sceneActor:'S08'},
  // Familiar local faces drift through the street in a goggle-induced haze.
@@ -294,7 +294,7 @@ function citizenPos(n){
 }
 // Malfunctioning floor-cleaner / security sentries. Non-human obstacles, never citizens.
 const securityBots=[
- {x:694,left:654,right:730,type:1}, {x:1090,left:1040,right:1155,type:0}, {x:1585,left:1540,right:1617,type:1},
+ {x:694,left:654,right:730,type:1}, {x:1090,left:1040,right:1155,type:0}, {x:1695,left:1652,right:1742,type:1},
  {x:1930,left:1870,right:1980,type:2}, {x:2360,left:2300,right:2490,type:0},
  {x:2730,left:2700,right:2820,type:1}, {x:3320,left:3230,right:3360,type:2},
  {x:3740,left:3700,right:3830,type:0}, {x:4150,left:4100,right:4210,type:1},
@@ -303,7 +303,7 @@ const securityBots=[
  {x:6910,left:6875,right:7000,type:0}
 ].map((s,i)=>({...s,x:X(s.x),left:X(s.left),right:X(s.right),y:GROUND,hp:i%3===1?3:2,dir:i%2?1:-1,phase:i*.73,flash:0,stun:0,laserTimer:2.0+(i%5)*.45,laserWarmup:0,aimDir:1}));
 // More fighting room: bots patrol the travel corridors, but never crowd NPCs or cinematic entrances.
-const safeStops=[...citizens.map(n=>n.x),...['S02','S03','S04','S05','S06','S08','S09','S11','S12'].map(k=>X({S02:489,S03:806,S04:1510,S05:1741,S06:2994,S08:4360,S09:4950,S11:6110,S12:6410}[k]))];
+const safeStops=[...citizens.map(n=>n.x),...['S02','S03','S04','S05','S06','S08','S09','S11','S12'].map(k=>X({S02:489,S03:806,S04:1510,S05:1577,S06:2994,S08:4360,S09:4950,S11:6110,S12:6410}[k]))];
 for(let x=1500,i=0;x<END-1300;x+=735,i++){
  if(safeStops.some(v=>Math.abs(x-v)<490))continue;
  securityBots.push({x,left:x-95,right:x+95,y:GROUND,hp:i%3===1?3:2,dir:i%2?1:-1,type:i%3,phase:i*.63,flash:0,stun:0,laserTimer:2.2+(i%4)*.5,laserWarmup:0,aimDir:1});
@@ -374,12 +374,15 @@ function drawBots(){for(const b of securityBots){if(b.hp<=0)continue;const x=b.x
  R(-4,-63,7,12,'#374b61');circ(0,-66,5,Math.sin(t*7+b.phase)>0?'#ffd88b':'#ed6f7c');
  R(-10,-27,20,4,'#f6c97b');R(-5,-26,11,2,'#2b4b60');
  if(b.flash>0){circ(0,-44,29,'#d9fbff22');}g.restore();}}
+// The signpost and S05 event share one map position. No stretch-coordinate guesswork.
+const MARKET_HILL_SIGN_X=X(1550)+220;
+const MARKET_HILL_SCENE_X=MARKET_HILL_SIGN_X-56;
 const zones=[{a:0,b:X(1580),name:'CHURCH STREET',scene:'S03'},{a:X(1580),b:X(3440),name:'MARKET HILL',scene:'S05'},{a:X(3440),b:X(5560),name:'ST GEORGE’S SQUARE',scene:'S08'},{a:X(5560),b:END,name:'HAT GARDENS',scene:'S12'}];
 // Cutscene markers are at the approach to each landmark, not after it.
-const moments=[{key:'S02',x:X(489)},{key:'S03',x:X(806)},{key:'S04',x:X(1510)},{key:'S05',x:X(1661)},{key:'S06',x:X(2994)},{key:'S08',x:X(4360)},{key:'S09',x:X(4950)},{key:'S11',x:X(6110)},{key:'S12',x:X(6410)}];
+const moments=[{key:'S02',x:X(489)},{key:'S03',x:X(806)},{key:'S04',x:X(1510)},{key:'S05',x:MARKET_HILL_SCENE_X},{key:'S06',x:X(2994)},{key:'S08',x:X(4360)},{key:'S09',x:X(4950)},{key:'S11',x:X(6110)},{key:'S12',x:X(6410)}];
 let interacted=new Set(),shownBarks=new Set(),firstRealClimb=false;let ambientTalk=null,ambientQueue=[],lastCinematicTime=-99,lastAmbientEnd=-99;const AMBIENT_SCENES=new Set();const triggered=new Set();const zoneOf=x=>zones.findIndex(z=>x>=z.a&&x<z.b);function activePlatformY(q){return q.y+Math.sin(t*.9+q.phase)*q.move;}
 function getSceneLineDuration(line){if(line.duration)return line.duration;const dur=VOICE_DUR[line.id];return Math.max(.52,Math.min(25,(dur||Math.max(1.25,line.text.length/16))+.18));}
-const triggerPoints={S01:130,S02:X(310),S03:X(790),S04:X(1270),S05:X(1850),S06:X(2420),S07:X(2950),S08:X(3620),S09:X(4330),S10:X(5000),S11:X(5770),S12:X(6660),N01:X(510),N02:X(1260),N03:X(2260),N04:X(3500),N05:X(4000),N06:X(5520),N07:X(7110),S13:X(7400),S14:X(7470)};
+const triggerPoints={S01:130,S02:X(310),S03:X(790),S04:X(1270),S05:MARKET_HILL_SCENE_X,S06:X(2420),S07:X(2950),S08:X(3620),S09:X(4330),S10:X(5000),S11:X(5770),S12:X(6660),N01:X(510),N02:X(1260),N03:X(2260),N04:X(3500),N05:X(4000),N06:X(5520),N07:X(7110),S13:X(7400),S14:X(7470)};
 function attemptClimb(){
  if(!keys.up||P.mantle>0||P.climbCooldown>0||mode!=='play')return false;
  let target=null,best=Infinity;
@@ -565,21 +568,21 @@ function marketArchitecture(){if(!visible(1550,1820))return;const x=worldX(1550)
  // Market Hill terraced amphitheatre, courts in the upper background
  R(0,260,1610,82,'#675d64');R(12,265,1535,70,'#b4a49c');for(let z=0;z<7;z++){const tx=80+z*220;R(tx,270-z*5,160,10,'#e4d1b1');R(tx+10,280-z*5,150,10,'#827578');for(let i=0;i<6;i++)R(tx+i*25,283-z*5,18,3,'#6d6869');}
  R(405,115,310,166,'#606b75');R(423,99,278,169,'#b5b3a5');R(417,94,290,11,'#e2d5bb');R(436,89,247,8,'#647487');txt('CIVIC COURTS',560,125,16,'#423e55','center');for(let i=0;i<6;i++){const wx=443+i*43;R(wx,137,29,116,'#d8cbb4');R(wx+9,140,7,112,'#81919b');R(wx+30,138,4,116,'#eee3c9');R(wx-3,251,42,7,'#817f81');}
- R(10,186,290,75,'#51637a');for(let j=0;j<7;j++)windows(23+j*37,198,30,41);R(986,135,390,130,'#3d5870');for(let i=0;i<8;i++)windows(1003+i*45,151,36,54);R(1010,129,270,7,'#97d6db');txt('ORBIT EXCHANGE',205,152,16,'#b3f5ec','center');txt('AETHER ROW',1170,148,15,'#b8eff7','center');txt('MARKET HILL',111,225,18,'#d6f6f3','center');
+ R(10,186,290,75,'#51637a');for(let j=0;j<7;j++)windows(23+j*37,198,30,41);R(986,135,390,130,'#3d5870');for(let i=0;i<8;i++)windows(1003+i*45,151,36,54);R(1010,129,270,7,'#97d6db');txt('GREGGSTRONAUTS',205,152,16,'#b3f5ec','center');txt('PRIME-MARK',1170,148,15,'#b8eff7','center');
  for(let i=0;i<15;i++)R(30+i*105,309,80,3,'#f1e6cb65');for(let i=0;i<13;i++){const xx=34+i*120;R(xx,296,4,43,'#546778');R(xx-7,292,20,5,'#75d9db');}
  g.restore();}
 function libraryArchitecture(){if(!visible(4350,2110))return;const x=worldX(4350);g.save();g.translate(x,0);
  // Public square & central library facade, inspired by actual paving, long benches and blue step illumination
- R(0,185,2010,157,'#526777');R(90,147,1240,174,'#596676');R(108,140,1220,14,'#e2d7bb');R(120,123,1200,18,'#2a3d52');txt('CENTRAL LIBRARY',560,143,19,'#b0efea','center');txt('NEXUS GALLERIA',165,132,14,'#d3f2ef');
+ R(0,185,2010,157,'#526777');R(90,147,1240,174,'#596676');R(108,140,1220,14,'#e2d7bb');R(120,123,1200,18,'#2a3d52');txt('CENTRAL LIBRARY',560,143,19,'#b0efea','center');txt('POUND PLANET',165,132,14,'#d3f2ef');
  for(let i=0;i<18;i++){const wx=143+i*63;windows(wx,165,49,114);if(i%2===0)R(wx+47,158,4,123,'#ccd8be');}
  R(180,285,1100,40,'#c2b8a8');for(let i=0;i<16;i++)R(203+i*66,297,52,3,'#6e8d9c');
- R(1410,182,465,142,'#59738a');for(let i=0;i<8;i++)windows(1430+i*52,199,38,80);R(1440,155,400,21,'#1a4254');txt('CIVIC PLAZA · VISION GRID',1650,171,14,'#c6e6e1','center');txt('SKYDOCK TERRACE',1650,193,12,'#93cdd2','center');
+ R(1410,182,465,142,'#59738a');for(let i=0;i<8;i++)windows(1430+i*52,199,38,80);R(1440,155,400,21,'#1a4254');txt('CIVIC PLAZA · VISION GRID',1650,171,14,'#c6e6e1','center');txt('BOOTS & BOTS',1650,193,12,'#93cdd2','center');
  // fountains and water jets with animated glow
  for(let i=0;i<18;i++){let xx=72+i*100;R(xx,335,82,6,'#274d71');R(xx,333,82,3,'#67dffc');R(xx+32,322,4,10,'#5adae0');if(i%2===0){let h=17+Math.sin(t*3+i)*11;line(xx+36,320,xx+36,320-h,'#82ecff77',3);}}
  for(let i=0;i<6;i++){const bx=60+i*290;R(bx,282,135,8,'#203c5a');R(bx+3,279,129,4,'#79dfeb');R(bx+12,290,6,20,'#6a8ca0');R(bx+116,290,6,20,'#6a8ca0');}
  g.restore();}
 function hatArchitecture(){if(!visible(6100,2130))return;const x=worldX(6100);g.save();g.translate(x,0);
- R(0,198,1920,139,'#6d6b6b');R(0,196,1920,7,'#b8b0a2');for(let i=0;i<11;i++){let bx=i*190;R(bx,181,166,143,i%2?'#7c6c67':'#99938b');R(bx+18,159,129,24,'#a0a6a3');for(let j=0;j<5;j++)windows(bx+18+j*25,204,18,50);const names=['PULSE COURT','HOLOMART','NOVA QUAY','GLIMMER POINT','AERIUM','ECHO PLACE','VANTAGE LOFT','QUANTUM WALK','SKYFRAME','LUMA YARD','PRISM HOUSE'];txt(names[i],bx+83,175,11,'#f0f0d0','center');}
+ R(0,198,1920,139,'#6d6b6b');R(0,196,1920,7,'#b8b0a2');for(let i=0;i<11;i++){let bx=i*190;R(bx,181,166,143,i%2?'#7c6c67':'#99938b');R(bx+18,159,129,24,'#a0a6a3');for(let j=0;j<5;j++)windows(bx+18+j*25,204,18,50);const names=['COSMIC COSTA','NAN-DROIDS','ARGOS ORBIT','THE NEXT NEXT','B&M-BOTS','SPACESHAVERS','POUND PLANET','LIDL GREEN MEN','TURBO TESCO','GREGGS 3000','STARBUCKS XR'];txt(names[i],bx+83,175,11,'#f0f0d0','center');}
  // historic Bute St bridge and exposed Lea cut; tiered grassy terrace
  R(750,305,720,58,'#364858');R(750,295,720,10,'#bec3b5');R(835,292,570,5,'#4c7c8b');
  for(let s=0;s<7;s++){const sx=880+s*72,sy=291+s*8;R(sx,sy,76,9,'#b9baa6');R(sx,sy+8,76,6,'#60796c');R(sx+5,sy+13,68,7,'#568f75');}
@@ -615,9 +618,33 @@ function futureStreetInfill(){
   R(x,GROUND-h,480,h,col);R(x+8,GROUND-h-12,464,13,'#6f8d95');
   for(let j=0;j<10;j++){const xx=x+14+j*44;R(xx,GROUND-h+20,30,38,'#243e56');R(xx+4,GROUND-h+24,22,31,i%3?'#82acb6':'#aad0d0');R(xx+9,GROUND-h+25,2,31,'#42596b');}
   R(x+23,GROUND-31,410,7,'#223c54');R(x+25,GROUND-24,405,5,'#7fdcc0');
+  // Real high-street energy, a century later: one readable shopfront name per block.
+  // Sign plaques are placed on the facade (not floating at an unrelated world point).
+  const shops=['GREGGSTRONAUTS','PRIME-MARK 2140','COSTA GALACTICA','POUND PLANET',
+    'BOOTS & BOTS','NAN-DROIDS','SPECSAVERS XR','ARGOS ORBIT',
+    'LIDL GREEN MEN','THE NEXT NEXT','SUPERDRUG 3000','B&M-BOTS',
+    'HOME BARGAINS XL','BURGER GALACTIC','CARD FACTORY 2.0','ICELAND 2.0',
+    'STARBUCKS & STARS','THE WORKS 9000','WATERSTONES AI','TK MAXIMUM'];
+  const shop=shops[((i%shops.length)+shops.length)%shops.length];
+  const sy=GROUND-h+7;
+  R(x+76,sy-3,332,30,'#12263b');R(x+80,sy,324,23,'#263f55');
+  R(x+82,sy+2,320,2,i%2?'#e7b8ff':'#7ee6df');
+  txt(shop,x+242,sy+19,15,i%2?'#f7daef':'#b8f6ed','center');
   if(i%3===0){R(x+195,GROUND-h-38,126,26,'#22374c');txt(['VISUAL LINK','SKY TRANSIT','SYNC ACTIVE'][i%3],x+259,GROUND-h-20,11,'#8cf4ed','center');}
   if(i%4===2){metalBeam(x+36,GROUND-h-46,14,50,'#6b95a4');R(x+29,GROUND-h-51,33,11,'#4b7b88');}
  }
+}
+// Physical roadside landmark. Its coordinate is also the entrance trigger for Scene S05.
+function drawMarketHillSign(){
+ const x=MARKET_HILL_SIGN_X-camera;
+ if(x<-140||x>W+140)return;
+ // Weathered pole and bold, illuminated direction board; faces the playable foreground.
+ R(x-8,235,16,GROUND-235,'#152c3d');R(x-4,240,8,GROUND-240,'#a3b8b6');
+ R(x-111,190,222,65,'#152a3b');R(x-108,193,216,59,'#d4b888');
+ R(x-102,199,204,46,'#234454');R(x-97,202,194,3,'#8fe6d9');
+ txt('MARKET HILL',x,227,23,'#fff1ce','center');
+ txt('CIVIC QUARTER',x,242,11,'#a5e9e2','center');
+ R(x-11,257,22,6,'#7a94a0');
 }
 function drawPlatforms(){for(const q of platforms){const x=q.x-camera,y=activePlatformY(q);if(x+q.w<-40||x>W+40)continue;const cm={stone:['#b5b6ad','#455e69','#d1d3bd'],old:['#aa9d8f','#656668','#dfd5b6'],brick:['#be8e80','#7a6268','#e3b09b'],glass:['#3a7287','#22475c','#86e3e9'],secret:['#687e85','#334454','#acc5bd'],garden:['#849a85','#587b70','#c9d9aa'],grass:['#729878','#456855','#bdcbb2']}[q.kind]||['#aaa','#444','#ddd'];
  R(x,y,q.w,13,cm[1]);R(x,y,q.w,6,cm[0]);R(x+4,y+2,q.w-8,2,cm[2]);R(x,y+13,q.w,4,'#273c4c');for(let j=9;j<q.w;j+=24)R(x+j,y+6,5,6,'#213f4a');
@@ -641,8 +668,8 @@ function humanoid(wx,foot,kind='citizen',opts={}){let x=wx-camera,y=foot;const i
  else {R(-13,-31,19,14,isRed?'#ad2135':'#3d566b');R(0,-24,31,9,isRed?'#ad2135':'#3d566b');R(22,-17,12,7,isRed?'#4b83dc':'#546d76');}
  // belt, shaped torso, shoulders
  poly([[-13,-58],[13,-58],[20,-36],[13,-25],[-13,-25],[-20,-36]],ink);poly([[-11,-57],[11,-57],[17,-38],[12,-28],[-12,-28],[-17,-38]],c);
- R(-13,-32,27,6,isRed?'#433b50':'#42596e');R(-3,-33,8,8,isRed?'#7fd9ed':'#c6bdd0');
- if(isRed){R(-9,-55,18,7,'#e33d4c');R(-4,-49,9,9,'#8d182e');R(-2,-48,5,5,'#f5c6ab');R(-14,-56,28,4,'#eb5b62');}
+ R(-13,-32,27,6,isRed?'#433b50':'#42596e');if(isRed){R(-6,-35,13,11,'#28313c');R(-4,-33,9,7,'#aebec5');R(-3,-32,6,3,'#f3f8f7');R(2,-29,2,2,'#6d8996');}else{R(-3,-33,8,8,'#c6bdd0');}
+ if(isRed){/* Clean red chest: no artificial logo, emblem or badge. */R(-14,-56,28,3,'#df4554');}
  else {R(-7,-52,14,23,'#5a7c8f');R(-4,-40,8,7,opts.type==='B'?'#f8bf69':'#b65d68');R(-16,-53,4,24,'#b4c0be');}
  // Single coherent arm rig: every pose draws exactly one arm per shoulder.
  const reach=opts.reach?22:0,climbing=isRed&&opts.climb,punching=isRed&&opts.attack==='punch',kicking=isRed&&opts.attack==='kick';
@@ -757,7 +784,7 @@ function futureDog(){const x=X(6900)-camera;if(x<-85||x>W+80)return;const y=GROU
 function drawProgress(){if(mode==='menu')return;let v=P.x/END;R(260,10,243,3,'#476171');R(260,10,clamp(243*v,0,243),3,'#8fe8da');for(const pt of [X(1580),X(3440),X(5560)]){R(260+pt/END*243,8,3,8,'#e2cc95');}}
 function draw(){g.setTransform(1,0,0,1,0,0);R(0,0,C.width,C.height,'#0e172e');g.setTransform(scale,0,0,scale,ox,oy);g.save();if(shake>0)g.translate((rand(frame)-.5)*shake,(rand(frame+12)-.5)*shake);
  sky();distantSkyline();townHall();glowBeams();traffic();futureStreetInfill();
- church();marketArchitecture();libraryArchitecture();hatArchitecture();riverContinuity();secrets();cityStuff();ground();drawPlatforms();
+ church();marketArchitecture();libraryArchitecture();hatArchitecture();riverContinuity();secrets();cityStuff();ground();drawPlatforms();drawMarketHillSign();
   drawClassicExtras();giantDog();citizensDraw();drawBots();drawLasers();futureDog();if(!film||!['S13','S14'].includes(film.key)){if(mode!=='end')humanoid(X(7462),GROUND,'golden',{face:-1,run:2});}sceneOverlays();drawHero();displayMemoryGlow();
  for(let i=particles.length-1;i>=0;i--){let pt=particles[i];pt.x+=pt.vx;pt.y+=pt.vy;pt.vy+=.12;pt.life-=1/60;if(pt.life<0)particles.splice(i,1);else{g.globalAlpha=pt.life;R(pt.x-camera,pt.y,3,3,pt.col);g.globalAlpha=1;}}
  if(flash>0){g.fillStyle=`rgba(195,246,250,${flash*.65})`;g.fillRect(0,0,W,H);}
@@ -769,8 +796,8 @@ function draw(){g.setTransform(1,0,0,1,0,0);R(0,0,C.width,C.height,'#0e172e');g.
    txt('LUTON 2140',W/2,175,25,'#9beae4','center');
    g.restore();
   }
- drawProgress();txt('ALL ON RED!  ·  LEVEL 3  ·  v0.11',16,H-11,10,'#c2e2da');g.restore();}
+ drawProgress();txt('ALL ON RED!  ·  LEVEL 3  ·  v0.12',16,H-11,10,'#c2e2da');g.restore();}
 function step(dt){let intendedCam=clamp(P.x-W*.32,0,END-W);if(film){let focus=film.key==='S01'?X(200):P.x;intendedCam=clamp(focus-W*.35,0,END-W);}camera=lerp(camera,intendedCam,clamp(dt*(film?2.4:6),0,1));update(dt);draw();}
 let last=0;function loop(now){let dt=last?clamp((now-last)/1000,0,.05):1/60;last=now;step(dt);requestAnimationFrame(loop);}updateHUD();requestAnimationFrame(loop);
-window.__L3={status:()=>({mode,x:Math.round(P.x),y:Math.round(P.y),scene:film?.key??null,line:film?.idx??null,memories:memory,hearts,played:[...triggered],audioKeys:Object.keys(VOICE_AUDIO).length,worldLength:END,sceneDistance:Math.round(P.x),sceneKeys:Object.keys(SCENES),robotsAlive:securityBots.filter(b=>b.hp>0).length,laserShots:laserShots.length,coinsFound,totalCoins:TOTAL_COINS,allCoinsAwarded,storyCompleted,climbProgress:P.climbProgress,power}),move:(x,y=GROUND)=>{P.x=x;P.y=y;P.vx=0;P.vy=0;P.on=true;},playScene:startFilm,finishScene:skipFilm,skipAll:()=>{if(film){film.idx=film.lines.length-1;advanceLine();}},triggerInteraction:handleInteract,citizens,personX:citizenPos,nearest:getNearest,allScenesAreFilm:AMBIENT_SCENES.size===0,platforms,sceneDefs:SCENES,moments,robots:securityBots,coinsList:chargePickups,heartDrops:healthPickups,quietDebug:()=>{for(const m of moments)triggered.add(m.key);if(film){film.idx=film.lines.length-1;advanceLine();}mode='play';},getVoice:(key)=>Boolean(VOICE_AUDIO[key]),tryClimb:()=>{const old=keys.up;keys.up=true;const r=attemptClimb();keys.up=old;return r;},takeCoins:()=>{for(const c of chargePickups)if(!c.bonus)c.taken=true;coinsFound=TOTAL_COINS;allCoinsAwarded=true;showCollectorResult();updateHUD();}};
+window.__L3={status:()=>({mode,x:Math.round(P.x),y:Math.round(P.y),scene:film?.key??null,line:film?.idx??null,memories:memory,hearts,played:[...triggered],audioKeys:Object.keys(VOICE_AUDIO).length,worldLength:END,sceneDistance:Math.round(P.x),sceneKeys:Object.keys(SCENES),marketHillSignX:MARKET_HILL_SIGN_X,robotsAlive:securityBots.filter(b=>b.hp>0).length,laserShots:laserShots.length,coinsFound,totalCoins:TOTAL_COINS,allCoinsAwarded,storyCompleted,climbProgress:P.climbProgress,power}),move:(x,y=GROUND)=>{P.x=x;P.y=y;P.vx=0;P.vy=0;P.on=true;},playScene:startFilm,finishScene:skipFilm,skipAll:()=>{if(film){film.idx=film.lines.length-1;advanceLine();}},triggerInteraction:handleInteract,citizens,personX:citizenPos,nearest:getNearest,allScenesAreFilm:AMBIENT_SCENES.size===0,platforms,sceneDefs:SCENES,moments,robots:securityBots,coinsList:chargePickups,heartDrops:healthPickups,quietDebug:()=>{for(const m of moments)triggered.add(m.key);if(film){film.idx=film.lines.length-1;advanceLine();}mode='play';},getVoice:(key)=>Boolean(VOICE_AUDIO[key]),tryClimb:()=>{const old=keys.up;keys.up=true;const r=attemptClimb();keys.up=old;return r;},takeCoins:()=>{for(const c of chargePickups)if(!c.bonus)c.taken=true;coinsFound=TOTAL_COINS;allCoinsAwarded=true;showCollectorResult();updateHUD();}};
 })()</script></body></html>
