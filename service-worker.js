@@ -1,2 +1,3 @@
-// Level 3 v0.2: unregister service worker so iOS always receives new audio.
-self.addEventListener('install',()=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(self.registration.unregister()));
+// Level 3 v0.4 · no persistent caching while testing.
+self.addEventListener('install',()=>self.skipWaiting());
+self.addEventListener('activate',event=>event.waitUntil(self.registration.unregister()));
