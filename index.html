@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#10162e"><title>ALL ON RED! — LEVEL 3 · THE FUTURE · v0.14</title><style>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#10162e"><title>ALL ON RED! — LEVEL 3 · THE FUTURE · v0.15</title><style>
 :root{--ink:#171927;--cream:#fff2c6;--pink:#d63444}
 *{box-sizing:border-box;touch-action:none;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#18213b;color:#fff;font:900 13px system-ui,Arial,sans-serif;user-select:none;-webkit-user-select:none}
@@ -118,6 +118,10 @@ body.film #subtitle{bottom:28px}
 /* iPhone Safari: all repeated combat taps stay as game input instead of zoom gestures. */
 #controls,#controls *,#contextAction{touch-action:none!important;-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important;overscroll-behavior:contain!important;}
 #controls .btn{min-width:0;-webkit-tap-highlight-color:transparent!important;}
+
+/* Final result is genuinely centred in landscape Safari, never left aligned. */
+#end.screen{position:fixed;inset:0;display:none;place-items:center;align-items:center;justify-items:center;padding:12px;box-sizing:border-box;background:rgba(10,16,30,.83);}
+#end .panel{box-sizing:border-box;width:min(650px,calc(100vw - 30px));max-height:calc(100dvh - 24px);margin:auto;transform:none;}
 </style></head><body><div id="root">
 <div class="rotate-only" id="rotatePrompt" role="alert" aria-label="Turn your phone sideways to play">
  <div class="rotate-logo">ALL ON RED!</div><div class="rotate-icon" aria-hidden="true"></div>
@@ -143,7 +147,7 @@ body.film #subtitle{bottom:28px}
 <button id="skip">SKIP ▶▶</button>
 <div id="subtitle"><div class="who" id="speaker">RED MAN</div><div class="line" id="spoken">...</div></div><div id="prompt"></div><button id="contextAction" aria-label="Talk or examine">TALK</button>
 <div class="screen" id="menu"><div class="panel"><div class="logo">ALL ON RED!</div>
- <div class="subtitle">LEVEL 3 · THE FUTURE · v0.14</div>
+ <div class="subtitle">LEVEL 3 · THE FUTURE · v0.15</div>
  <div class="desc">The portal has thrown Red Man into a future full of flying cars, baffling citizens and mysterious goggles. Climb futuristic walkways, battle malfunctioning robots and explore. Collect all 27 coins for the optional 100% clear!</div>
  <button class="go" id="start">START LEVEL 3</button><button class="go" id="audioTestMenu" style="margin-left:7px;background:#295975;font-size:12px">♪ TEST SOUND</button>
  <div id="audioStatus" role="status" style="font-size:10px;font-weight:900;margin-top:4px">Audio: tap TEST SOUND to enable</div>
@@ -160,9 +164,26 @@ let DPR=1,scale=1,ox=0,oy=0;function resize(){DPR=Math.min(devicePixelRatio||1,2
 let t=0,frame=0,mode='menu',camera=0,camVel=0,film=null,audioOn=true,voiceUnlocked=false,played={},visits=0,hearts=4,memory={studio:false,xforce:false},gogglesSeen=0,checkpoint=120,shake=0,flash=0,subRemain=0,ghostTime=0,gamePause=false,timerMessage=0,nearInteract=null,movePlatformHint=false;
 const keys={left:false,right:false,up:false,down:false,jump:false,interact:false,punch:false,kick:false,special:false},pressed={jump:false,interact:false,punch:false,kick:false,special:false},P={x:120,y:GROUND,vx:0,vy:0,face:1,on:true,grounded:0,jumpBuffer:0,run:0,pose:'stand',hit:0,step:0,duck:0,cling:0,mantle:0,mantleX:0,mantleY:0,climbStartX:0,climbStartY:0,climbProgress:0,climbCooldown:0,drop:0};
 const effects={};const effectChannels=[];
+let sfxContext=null;const decodedSfx={},decodingSfx={};
+function decodeSfx(name){if(!sfxContext||!SFX_AUDIO[name]||decodedSfx[name]||decodingSfx[name])return;
+ try{const raw=atob(SFX_AUDIO[name]),b=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)b[i]=raw.charCodeAt(i);
+ decodingSfx[name]=sfxContext.decodeAudioData(b.buffer).then(buffer=>{decodedSfx[name]=buffer;delete decodingSfx[name];}).catch(()=>{delete decodingSfx[name];});}catch{}}
+function unlockEffects(){try{const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
+ if(!sfxContext)sfxContext=new C();sfxContext.resume().catch(()=>{});
+ for(const n of ['coin','boom','hurt','punch','kick','step','croc','laser','laser_charge','zap','scene'])decodeSfx(n);
+ }catch{}}
 function playSfx(name,volume=.34){if(!audioOn||!SFX_AUDIO[name])return;
- try{if(!effects[name]){const raw=atob(SFX_AUDIO[name]),b=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)b[i]=raw.charCodeAt(i);effects[name]=URL.createObjectURL(new Blob([b],{type:'audio/mpeg'}));}
- const node=new Audio(effects[name]);node.volume=volume*(audio.paused?1:.42);node.play().catch(()=>{});node.onended=()=>{const i=effectChannels.indexOf(node);if(i>=0)effectChannels.splice(i,1);};effectChannels.push(node);if(effectChannels.length>12)effectChannels.shift().pause();}catch(e){}
+ try{
+ if(sfxContext&&decodedSfx[name]&&sfxContext.state==='running'){
+  const source=sfxContext.createBufferSource(),gain=sfxContext.createGain();
+  source.buffer=decodedSfx[name];gain.gain.value=clamp(volume*(audio.paused?1:.62),.02,.85);
+  source.connect(gain);gain.connect(sfxContext.destination);source.start(0);source.onended=()=>{source.disconnect();gain.disconnect();};return;
+ }
+ if(sfxContext&&!decodedSfx[name])decodeSfx(name);
+ if(!effects[name]){const raw=atob(SFX_AUDIO[name]),b=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)b[i]=raw.charCodeAt(i);effects[name]=URL.createObjectURL(new Blob([b],{type:'audio/mpeg'}));}
+ const node=new Audio(effects[name]);node.volume=volume*(audio.paused?1:.42);node.play().catch(()=>{});
+ node.onended=()=>{const i=effectChannels.indexOf(node);if(i>=0)effectChannels.splice(i,1);};effectChannels.push(node);if(effectChannels.length>16)effectChannels.shift().pause();
+ }catch(e){}
 }
 const voices={};const music=new Audio();music.preload='auto';music.loop=true;music.volume=.17;let musicTrack=null,musicURL=null;
 function setMusic(track){if(musicTrack===track)return;musicTrack=track;music.pause();if(musicURL){URL.revokeObjectURL(musicURL);musicURL=null;}if(!audioOn||!MUSIC_AUDIO[track])return;try{const bytes=atob(MUSIC_AUDIO[track]),b=new Uint8Array(bytes.length);for(let i=0;i<bytes.length;i++)b[i]=bytes.charCodeAt(i);musicURL=URL.createObjectURL(new Blob([b],{type:'audio/mpeg'}));music.src=musicURL;music.volume=.17;let promise=music.play();if(promise)promise.catch(()=>{});}catch(e){}}
@@ -173,7 +194,7 @@ function stopVoice(){currentSoundKey=null;music.volume=.17;audio.pause();if(voic
 function showSub(who,line,time=3){ui.speaker.textContent=who==='RED'?'RED MAN':who.replaceAll('_',' ');ui.spoken.textContent=line;ui.subtitle.style.display='block';subRemain=time;}
 function clearSub(){ui.subtitle.style.display='none';subRemain=0;}
 function msg(str,time=2.5){ui.prompt.textContent=str;ui.prompt.style.display='block';timerMessage=time;}
-function initSound(){if(voiceUnlocked)return;voiceUnlocked=true;try{const AC=window.AudioContext||window.webkitAudioContext;const ac=new AC();const osc=ac.createOscillator(),vol=ac.createGain();osc.frequency.value=160;vol.gain.value=0;osc.connect(vol);vol.connect(ac.destination);osc.start();ac.resume();setTimeout(()=>{osc.stop();ac.close().catch(()=>{})},350);}catch(e){}}
+function initSound(){unlockEffects();if(voiceUnlocked)return;voiceUnlocked=true;try{const AC=window.AudioContext||window.webkitAudioContext;const ac=new AC();const osc=ac.createOscillator(),vol=ac.createGain();osc.frequency.value=160;vol.gain.value=0;osc.connect(vol);vol.connect(ac.destination);osc.start();ac.resume();setTimeout(()=>{osc.stop();ac.close().catch(()=>{})},350);}catch(e){}}
 function keyDown(name){if(!keys[name])pressed[name]=true;keys[name]=true;}function keyUp(name){keys[name]=false;}
 // Prevent iOS Safari double-tap smart zoom on fast repeated attack presses.
 for(const name of ['gesturestart','gesturechange','gestureend'])
@@ -184,7 +205,23 @@ document.addEventListener('touchend',e=>{if(e.target.closest?.('.controls,.btn')
  const now=Date.now();if(e.cancelable)e.preventDefault();lastActionTouch=now;
 }},{passive:false,capture:true});
 document.addEventListener('touchmove',e=>{if(e.target.closest?.('.controls,.btn')&&e.cancelable)e.preventDefault();},{passive:false,capture:true});
-for(const btn of document.querySelectorAll('[data-key]')){const k=btn.dataset.key;function down(e){e.preventDefault();keyDown(k);btn.classList.add('down');try{btn.setPointerCapture(e.pointerId)}catch{}}function up(e){e.preventDefault();keyUp(k);btn.classList.remove('down');}btn.addEventListener('pointerdown',down);btn.addEventListener('pointerup',up);btn.addEventListener('pointercancel',up);btn.addEventListener('lostpointercapture',up);}
+// Maintain actual active pointers so a missed Safari release cannot leave a movement key held.
+const activeTouchControls=new Map();
+function resetTouchControls(){for(const name of ['left','right','up','down','jump','interact','punch','kick','special']){keyUp(name);}activeTouchControls.clear();for(const btn of document.querySelectorAll('[data-key]'))btn.classList.remove('down');P.vx=0;}
+for(const btn of document.querySelectorAll('[data-key]')){
+ const k=btn.dataset.key;
+ function down(e){if(e.cancelable)e.preventDefault();if(e.pointerId!==undefined)activeTouchControls.set(e.pointerId,k);keyDown(k);btn.classList.add('down');try{btn.setPointerCapture(e.pointerId);}catch{}}
+ function up(e){if(e.cancelable)e.preventDefault();if(e.pointerId!==undefined){if(activeTouchControls.get(e.pointerId)!==k)return;activeTouchControls.delete(e.pointerId);}if(![...activeTouchControls.values()].includes(k)){keyUp(k);btn.classList.remove('down');}}
+ btn.addEventListener('pointerdown',down);btn.addEventListener('pointerup',up);btn.addEventListener('pointercancel',up);btn.addEventListener('lostpointercapture',up);
+}
+for(const ev of ['pointerup','pointercancel'])document.addEventListener(ev,e=>{if(activeTouchControls.has(e.pointerId)){const name=activeTouchControls.get(e.pointerId);activeTouchControls.delete(e.pointerId);if(![...activeTouchControls.values()].includes(name))keyUp(name);}},true);
+// iOS can cancel touch tracking when Safari chrome takes focus: always release controls.
+window.addEventListener('blur',resetTouchControls);
+window.addEventListener('pagehide',resetTouchControls);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)resetTouchControls();});
+document.addEventListener('touchcancel',resetTouchControls,{passive:true});
+// If iOS reports that all fingers are up, even without pointerup, release stuck inputs.
+document.addEventListener('touchend',e=>{if(e.touches&&e.touches.length===0&&activeTouchControls.size)resetTouchControls();},{passive:true});
 addEventListener('keydown',e=>{const map={ArrowLeft:'left',a:'left',A:'left',ArrowRight:'right',d:'right',D:'right',ArrowUp:'up',w:'up',W:'up',ArrowDown:'down',s:'down',S:'down',Space:'jump',' ':'jump',x:'punch',X:'punch',z:'kick',Z:'kick',c:'special',C:'special',e:'interact',E:'interact',Enter:'interact'};if(map[e.key]){e.preventDefault();keyDown(map[e.key])}if(e.key==='Escape'&&mode==='film')skipFilm();});addEventListener('keyup',e=>{const map={ArrowLeft:'left',a:'left',A:'left',ArrowRight:'right',d:'right',D:'right',ArrowUp:'up',w:'up',W:'up',ArrowDown:'down',s:'down',S:'down',Space:'jump',' ':'jump',x:'punch',X:'punch',z:'kick',Z:'kick',c:'special',C:'special',e:'interact',E:'interact',Enter:'interact'};if(map[e.key])keyUp(map[e.key]);});
 $('start').addEventListener('click',()=>{initSound();stopVoice();setMusic('city');ui.menu.style.display='none';mode='play';P.x=X(200);camera=clamp(P.x-W*.35,0,END-W);startFilm('S01');try{document.documentElement.requestFullscreen({navigationUI:'hide'}).catch(()=>{});}catch{};try{screen.orientation.lock('landscape').catch(()=>{});}catch{}});
 function testClassicSound(){initSound();const el=$('audioStatus');if(el)el.textContent='Audio: sample voice playing';const started=playVoice('L3_S01_RED_02');if(!started&&el)el.textContent='Audio unavailable — press START';}
@@ -274,12 +311,12 @@ const citizens=[
  {x:3500,type:'A',talk:'N04'},
  {x:4000,type:'B',talk:'N05'},
  {x:5520,type:'C',talk:'N06'},
- {x:7110,type:'A',talk:'N07'},
+ {x:5870,type:'A',talk:'N07'},
  {x:1601,type:'B',sceneActor:'S05'},
  {x:3020,type:'A',sceneActor:'S06'},
  {x:4387,type:'C',sceneActor:'S08'},
  // Familiar local faces drift through the street in a goggle-induced haze.
- ...Array.from({length:91},(_,i)=>180+i*80)
+ ...Array.from({length:91},(_,i)=>180+i*80).filter(x=>x<6000)
    .filter(x=>[510,1260,2260,3500,4000,5520,7110,1672,3020,4387,7462]
      .every(stop=>Math.abs(stop-x)>115))
    .map((x,i)=>({x,type:['A','B','C','B','A'][i%5],roam:60+(i%5)*29,
@@ -299,12 +336,11 @@ const securityBots=[
  {x:2730,left:2700,right:2820,type:1}, {x:3320,left:3230,right:3360,type:2},
  {x:3740,left:3700,right:3830,type:0}, {x:4150,left:4100,right:4210,type:1},
  {x:4520,left:4490,right:4620,type:2}, {x:5240,left:5200,right:5350,type:0},
- {x:5830,left:5770,right:5920,type:1}, {x:6420,left:6380,right:6540,type:2},
- {x:6910,left:6875,right:7000,type:0}
+ {x:5830,left:5770,right:5920,type:1}
 ].map((s,i)=>({...s,x:X(s.x),left:X(s.left),right:X(s.right),y:GROUND,hp:i%3===1?3:2,dir:i%2?1:-1,phase:i*.73,flash:0,stun:0,laserTimer:2.0+(i%5)*.45,laserWarmup:0,aimDir:1}));
 // More fighting room: bots patrol the travel corridors, but never crowd NPCs or cinematic entrances.
 const safeStops=[...citizens.map(n=>n.x),...['S02','S03','S04','S05','S06','S08','S09','S11','S12'].map(k=>X({S02:489,S03:806,S04:1510,S05:1577,S06:2994,S08:4360,S09:4950,S11:6110,S12:6410}[k]))];
-for(let x=1500,i=0;x<END-1300;x+=735,i++){
+for(let x=1500,i=0;x<X(5990);x+=735,i++){
  if(safeStops.some(v=>Math.abs(x-v)<490))continue;
  securityBots.push({x,left:x-95,right:x+95,y:GROUND,hp:i%3===1?3:2,dir:i%2?1:-1,type:i%3,phase:i*.63,flash:0,stun:0,laserTimer:2.2+(i%4)*.5,laserWarmup:0,aimDir:1});
 } 
@@ -386,7 +422,7 @@ const zones=[{a:0,b:X(1580),name:'CHURCH STREET',scene:'S03'},{a:X(1580),b:X(344
 const moments=[{key:'S02',x:X(489)},{key:'S03',x:X(806)},{key:'S04',x:X(1510)},{key:'S05',x:MARKET_HILL_SCENE_X},{key:'S06',x:X(2994)},{key:'S08',x:X(4360)},{key:'S09',x:X(4950)},{key:'S11',x:X(6110)},{key:'S12',x:X(6410)}];
 let interacted=new Set(),shownBarks=new Set(),firstRealClimb=false;let ambientTalk=null,ambientQueue=[],lastCinematicTime=-99,lastAmbientEnd=-99;const AMBIENT_SCENES=new Set();const triggered=new Set();const zoneOf=x=>zones.findIndex(z=>x>=z.a&&x<z.b);function activePlatformY(q){return q.y+Math.sin(t*.9+q.phase)*q.move;}
 function getSceneLineDuration(line){if(line.duration)return line.duration;const dur=VOICE_DUR[line.id];return Math.max(.52,Math.min(25,(dur||Math.max(1.25,line.text.length/16))+.18));}
-const triggerPoints={S01:130,S02:X(310),S03:X(790),S04:X(1270),S05:MARKET_HILL_SCENE_X,S06:X(2420),S07:X(2950),S08:X(3620),S09:X(4330),S10:X(5000),S11:X(5770),S12:X(6660),N01:X(510),N02:X(1260),N03:X(2260),N04:X(3500),N05:X(4000),N06:X(5520),N07:X(7110),S13:X(7400),S14:X(7470)};
+const triggerPoints={S01:130,S02:X(310),S03:X(790),S04:X(1270),S05:MARKET_HILL_SCENE_X,S06:X(2420),S07:X(2950),S08:X(3620),S09:X(4330),S10:X(5000),S11:X(5770),S12:X(6660),N01:X(510),N02:X(1260),N03:X(2260),N04:X(3500),N05:X(4000),N06:X(5520),N07:X(6070),S13:X(7400),S14:X(7470)};
 function attemptClimb(){
  if(!keys.up||P.mantle>0||P.climbCooldown>0||mode!=='play')return false;
  let target=null,best=Infinity;
@@ -434,7 +470,7 @@ function startFilm(key,callback){if(!SCENES[key])return;
  const actor=citizens.find(n=>n.sceneActor===key)||(key.startsWith('N')?citizens.find(n=>n.talk===key):null);
  film={key,lines:SCENES[key],idx:-1,lineTime:0,elapsed:0,wait:0,onDone:callback||null,
  focus:P.x,startX:P.x,actor,actorX:actor?citizenPos(actor):null,started:performance.now()};
- mode='film';document.body.classList.add('film');ui.skip.style.display='block';clearSub();advanceLine();}
+ resetTouchControls();mode='film';document.body.classList.add('film');ui.skip.style.display='block';clearSub();advanceLine();}
 function advanceLine(){if(!film)return;film.idx++;if(film.idx>=film.lines.length){const done=film.onDone,key=film.key;film=null;mode='play';document.body.classList.remove('film');ui.skip.style.display='none';clearSub();stopVoice();if(done)done();if(key==='S12')msg('FOLLOW THE RIVER TO FIND THOSE GOGGLES.',3.5);return;}
  const line=film.lines[film.idx];film.lineTime=0;film.wait=getSceneLineDuration(line);film.voiceFinished=false;film.voiceEndTime=0;
  if(line.text)showSub(line.who,line.text,999);else clearSub();
@@ -444,6 +480,12 @@ function advanceLine(){if(!film)return;film.idx++;if(film.idx>=film.lines.length
 function skipFilm(){if(!film)return;film.idx=film.lines.length-1;advanceLine();}
 function updateFilm(dt){if(!film)return;film.elapsed+=dt;film.lineTime+=dt;
  if(film.key==='S01'&&film.idx===1){P.x=X(200);P.y=GROUND;}
+ // Walk towards the waiting goggle wearer on screen instead of teleporting into the push.
+ if(film.key==='S13'&&film.idx<=4){
+   const goal=X(7540)-58;
+   if(P.x<goal){const delta=Math.min(goal-P.x,Math.max(0,165*dt));P.x+=delta;P.face=1;P.run+=delta*.18;film.walking=delta>0.02;}
+   else film.walking=false;
+ }
 
  // Follow the actual recording, not the old untrimmed timer. Allow a short natural pause.
  if(film.hasVoice){if(film.voiceFinished){if(film.lineTime>=film.voiceEndTime+.21)advanceLine();}
@@ -502,7 +544,7 @@ function update(dt){t+=dt;frame++; if(shake>0)shake=Math.max(0,shake-dt*13);if(f
     if(actor && (Math.abs(P.x-citizenPos(actor))>170 || Math.abs(P.y-GROUND)>145))continue;
     triggered.add(m.key);checkpoint=Math.max(checkpoint,m.x-220);startFilm(m.key);break;
  }}
- if(P.x>X(7460)&&triggered.has('S12')&&mode==='play'&&!triggered.has('S13')){triggered.add('S13');startFilm('S13',()=>startFilm('S14',()=>{mode='end';storyCompleted=true;ui.end.style.display='flex';showCollectorResult();stopVoice();}));}
+ if(P.x>X(7460)&&triggered.has('S12')&&mode==='play'&&!triggered.has('S13')){triggered.add('S13');startFilm('S13',()=>startFilm('S14',()=>{resetTouchControls();mode='end';storyCompleted=true;ui.end.style.display='grid';showCollectorResult();stopVoice();}));}
  if(P.x>X(520)&&P.x<X(1300)&&P.y<240&&!shownBarks.has('B04')){shownBarks.add('B04');playBark('B04');}
  if(P.x>X(1720)&&!shownBarks.has('B05')){shownBarks.add('B05');playBark('B05');}
  if(P.x>X(1150)&&P.x<X(1430)&&!shownBarks.has('B09')){shownBarks.add('B09');playBark('B09');}
@@ -551,7 +593,7 @@ function townHall(){// stationary deep-background landmark visible across every 
 function glowBeams(){for(let i=0;i<7;i++){let x=80+i*132+Math.sin(t*.25+i)*20;poly([[x,80],[x+13,80],[x+52,300],[x+25,300]],'rgba(72,211,242,.024)');}}
 function hovercar(x,y,size=1,dir=1,seed=0){g.save();g.translate(x,y);g.scale(dir*size,size);
  R(-43,-6,91,12,'#172439');R(-33,-12,60,7,['#815a76','#576f95','#86765e','#3c7d85'][seed%4]);poly([[-18,-11],[-2,-24],[26,-24],[41,-11]],'#1f364f');poly([[-11,-12],[1,-20],[25,-20],[30,-12]],'#92d3e6');R(-47,-2,8,7,'#f5d7ac');R(41,-2,9,6,'#ee758c');R(-25,5,13,5,'#55cdeb');R(22,5,13,5,'#55cdeb');for(let i=0;i<2;i++){circ(-18+i*45,15+Math.sin(t*8+i)*2,3,'#8cf7e3a8');}g.restore();}
-function traffic(){const cars=[{s:0.78,y:107,v:48,x:130,d:1},{s:.68,y:145,v:-66,x:630,d:-1},{s:.95,y:76,v:39,x:490,d:1},{s:.5,y:201,v:-45,x:50,d:-1},{s:.76,y:182,v:50,x:715,d:1}];cars.forEach((v,i)=>{let x=((v.x+t*v.v)%(W+350)+(W+350))%(W+350)-140;hovercar(x,v.y+Math.sin(t*2+i)*5,v.s,v.d,i);});}
+function traffic(){if(P.x>X(6050))return;const cars=[{s:0.78,y:107,v:48,x:130,d:1},{s:.68,y:145,v:-66,x:630,d:-1},{s:.95,y:76,v:39,x:490,d:1},{s:.5,y:201,v:-45,x:50,d:-1},{s:.76,y:182,v:50,x:715,d:1}];cars.forEach((v,i)=>{let x=((v.x+t*v.v)%(W+350)+(W+350))%(W+350)-140;hovercar(x,v.y+Math.sin(t*2+i)*5,v.s,v.d,i);});}
 function worldX(x){return X(x)-camera;}function visible(wx,w=0){let x=worldX(wx);return x+w> -100&&x< W+100;}
 function metalBeam(x,y,w,h,col='#526a78'){R(x,y,w,h,'#182f3c');R(x+1,y+1,w-2,h-3,col);R(x+1,y+1,w-2,2,'#aec8c5');for(let i=x+12;i<x+w;i+=30)R(i,y+3,3,Math.max(0,h-7),'#96b3b33a');}
 function windows(x,y,w,h){R(x,y,w,h,'#1c3548');R(x+3,y+2,w-6,h-5,'#89c4cb');R(x+5,y+3,w-9,h-8,'#3e6b83');R(x+w*.58,y+2,2,h-5,'#cdd5b8');R(x+3,y+h*.56,w-6,2,'#b4d5d7');}
@@ -586,7 +628,21 @@ function libraryArchitecture(){if(!visible(4350,2110))return;const x=worldX(4350
  for(let i=0;i<6;i++){const bx=60+i*290;R(bx,282,135,8,'#203c5a');R(bx+3,279,129,4,'#79dfeb');R(bx+12,290,6,20,'#6a8ca0');R(bx+116,290,6,20,'#6a8ca0');}
  g.restore();}
 function hatArchitecture(){if(!visible(6100,2130))return;const x=worldX(6100);g.save();g.translate(x,0);
- R(0,198,1920,139,'#6d6b6b');R(0,196,1920,7,'#b8b0a2');for(let i=0;i<11;i++){let bx=i*190;R(bx,181,166,143,i%2?'#7c6c67':'#99938b');R(bx+18,159,129,24,'#a0a6a3');for(let j=0;j<5;j++)windows(bx+18+j*25,204,18,50);const names=['COSMIC COSTA','NAN-DROIDS','ARGOS ORBIT','THE NEXT NEXT','B&M-BOTS','SPACESHAVERS','POUND PLANET','LIDL GREEN MEN','TURBO TESCO','GREGGS 3000','STARBUCKS XR'];txt(names[i],bx+83,175,11,'#f0f0d0','center');}
+ // Hat Gardens is derelict and isolated: gaps, rusted walls, broken stone, boarded windows.
+ R(0,313,1920,24,'#5e605b');R(0,308,1920,6,'#8f8f7f');
+ for(let i=0;i<3;i++){
+   const bx=[45,655,1460][i],by=[170,204,153][i],bw=[350,315,375][i],bh=320-by;
+   R(bx,by,bw,bh,['#51545a','#4c5151','#484e55'][i]);R(bx-7,by-7,bw+14,9,'#72716c');
+   for(let j=0;j<4;j++){const xx=bx+29+j*73,yy=by+23+(j%2)*5;
+     R(xx,yy,48,69,'#1f3034');R(xx-1,yy+15,50,10,'#a07e59');
+     R(xx+3,yy+34,49,10,'#9b7654');line(xx,yy+8,xx+46,yy+65,'#bc976c',5);
+   }
+   R(bx+22,GROUND-53,bw-44,5,'#665d52');
+   for(let j=0;j<20;j++){const xx=bx+rand(i*37+j)*bw,yy=by+rand(i*43+j)*(bh-15);R(xx,yy,2,4,'#b0a59744');}
+ }
+ // Remnants of an old public stairway, cracked retaining wall and sparse weeds.
+ for(let k=0;k<9;k++){let bx=190+k*170;R(bx,320,86,8,'#686860');R(bx+8,319,3,2,'#b5b39e');}
+ for(let k=0;k<19;k++){let bx=rand(k*7+3)*1880;line(bx,326,bx+3,316+rand(k*2+2)*9,'#627d64',2);}
  // historic Bute St bridge and exposed Lea cut; tiered grassy terrace
  R(750,305,720,58,'#364858');R(750,295,720,10,'#bec3b5');R(835,292,570,5,'#4c7c8b');
  for(let s=0;s<7;s++){const sx=880+s*72,sy=291+s*8;R(sx,sy,76,9,'#b9baa6');R(sx,sy+8,76,6,'#60796c');R(sx+5,sy+13,68,7,'#568f75');}
@@ -602,7 +658,7 @@ function secrets(){// Rusted fictional futures, real logo assets intentionally n
  if(visible(4940,430)){const x=worldX(4950);R(x,102,358,161,'#354f54');R(x+7,113,344,12,'#667c7c');R(x+20,138,314,41,'#476664');R(x+18,134,317,4,'#789495');R(x+72,144,216,28,'#2a3830');txt('X-4RCE',x+180,162,23,'#d2e4cb','center');txt('COMMUNITY HUB',x+180,182,12,'#9aaea3','center');R(x+50,192,260,69,'#273c45');for(let i=0;i<14;i++)R(x+60+i*18,197,7,63,'#566769');for(let i=0;i<8;i++){let bx=x+64+i*28, by=202+(i%2)*10; poly([[bx,by],[bx+46,by+8],[bx+42,by+16],[bx-4,by+8]],'#7e6445'); line(bx+5,by+3,bx+36,by+11,'#bf9a68',3);}R(x+21,257,316,6,'#8b8278');noiseDots(x+16,127,330,120,113,'#d4bda258',45);}
 }
 function ground(){// Every zone has a reachable continuous foreground deck, but varying visual surfaces
- const y=GROUND;R(0,y,W,H-y,'#243444');R(0,y,W,7,'#859ead');R(0,y-4,W,3,'#bdd6cc');
+ const y=GROUND;if(P.x>X(5480)){R(0,y,W,H-y,'#343c3b');R(0,y-5,W,6,'#978d7c');for(let j=Math.floor(camera/91)-2;j<Math.ceil((camera+W)/91)+2;j++){let xx=j*91-camera;R(xx,y+4,2,H-y-6,'#53514a');line(xx+7,y+19,xx+54,y+24,'#4c514d',2);if(j%6===0){line(xx+27,y+6,xx+31,y+17,'#8b8974',2);}}return;}R(0,y,W,H-y,'#243444');R(0,y,W,7,'#859ead');R(0,y-4,W,3,'#bdd6cc');
  for(let i=Math.floor(camera/58)-2;i<Math.ceil((camera+W)/58)+2;i++){let x=i*58-camera;R(x,y+7,2,H-y-7,'#4c6577');R(x+2,y+26,56,2,'#466176');R(x+4,y+10,7,2,'#b2c1b6');if(i%4===0){R(x+20,y+13,30,3,'#79bdb4');}}
  for(let i=Math.floor(camera/130);i<Math.ceil((camera+W)/130);i++){let x=i*130-camera;R(x,y-3,17,3,'#55e8d9');R(x+55,y+5,12,2,'#829bb1');}
 }
@@ -618,6 +674,23 @@ function riverContinuity(){if(P.x<X(6100))return;
 function futureStreetInfill(){
  const lo=Math.max(0,Math.floor((camera-450)/520)),hi=Math.min(Math.ceil(END/520),Math.ceil((camera+W+450)/520));
  for(let i=lo;i<=hi;i++){const x=i*520-camera;
+  // Quiet Hat Gardens: no shops, advertising or active high-street frontages.
+  if(i*520>=X(5470)){
+    if(i%3===1)continue; // gaps make the river approach genuinely empty
+    const h=92+Math.floor(rand(i*7+23)*69),w=365+Math.floor(rand(i+33)*95),top=GROUND-h;
+    R(x,top,w,h,i%2?'#404c50':'#555455');R(x-5,top-7,w+9,9,'#646765');
+    R(x+12,top+5,w-24,4,'#303e43');
+    // Derelict unlit windows, boarded across rather than glowing glass.
+    for(let j=0;j<5;j++){const wx=x+27+j*67,wy=top+27+(j%2)*4;
+      R(wx-2,wy-3,46,59,'#303b40');R(wx,wy,41,55,'#182930');
+      R(wx+5,wy+18,37,9,'#94704b');R(wx+2,wy+33,39,10,'#a18155');
+      line(wx+5,wy+12,wx+42,wy+50,'#bc9b6e',5);R(wx+7,wy+20,4,4,'#e1c399');
+    }
+    R(x+25,GROUND-49,w-50,4,'#5a4e4a');
+    for(let k=0;k<17;k++)R(x+rand(i*19+k)*w,top+rand(i*25+k)*h,2,4,'#9d9b894f');
+    if(i%4===0){R(x+w-60,GROUND-25,56,10,'#39393b');R(x+w-58,GROUND-34,47,9,'#55504d');}
+    continue;
+  }
   const h=85+Math.round(rand(i*9+4)*93),col=['#445c6b','#536975','#3b596b','#566275'][i%4];
   R(x,GROUND-h,480,h,col);R(x+8,GROUND-h-12,464,13,'#6f8d95');
   for(let j=0;j<10;j++){const xx=x+14+j*44;R(xx,GROUND-h+20,30,38,'#243e56');R(xx+4,GROUND-h+24,22,31,i%3?'#82acb6':'#aad0d0');R(xx+9,GROUND-h+25,2,31,'#42596b');}
@@ -657,13 +730,13 @@ function drawPlatforms(){for(const q of platforms){const x=q.x-camera,y=activePl
  if(q.move)for(let j=0;j<3;j++)circ(x+q.w/2+(j-1)*23,y+25+Math.sin(t*5+j)*2,2,'#67c7dba5');
 }}
 function cityStuff(){// lampposts, holo placards, wires, cables and vegetation
- for(let i=Math.max(0,Math.floor((camera-270)/283));i<Math.ceil((camera+W+270)/283);i++){const wx=i*283+245,x=wx-camera;if(x<-60||x>W+80)continue;
+ for(let i=Math.max(0,Math.floor((camera-270)/283));i<Math.ceil((camera+W+270)/283);i++){const wx=i*283+245,x=wx-camera;if(x<-60||x>W+80)continue;if(wx>=X(5490)){if(i%5===1){R(x,270,5,98,'#4a4e50');R(x-6,268,14,4,'#66645e');line(x+1,280,x+10,293,'#353b3e',2);}continue;}
  R(x,262,5,105,'#3a5360');R(x-7,261,20,6,'#a8ccba');R(x-9,262,24,3,'#64dbd5');circ(x+2,258,3+Math.sin(t*3+i)*.8,'#e7dfa388');
  if(i%3===1){R(x+6,282,50,31,'#22485ca3');R(x+8,284,46,3,'#76d8d5');txt(i%2?'SYNC':'CLEAR',x+29,303,10,'#9de7e3','center');}
  if(i%4===2){R(x-20,347,48,6,'#698b79');R(x-18,336,44,10,'#40665c');for(let k=0;k<4;k++)circ(x-13+k*12,331+Math.sin(t+k)*2,9,'#638e78');}}
 }
 function renderShadow(x,y,w=19){g.save();g.globalAlpha=.3;g.fillStyle='#081827';g.beginPath();g.ellipse(x,y,w,5,0,0,TAU);g.fill();g.restore();}
-function humanoid(wx,foot,kind='citizen',opts={}){let x=wx-camera,y=foot;const isRed=kind==='red';const isGolden=kind==='golden';const c=isRed?'#d02337':isGolden?'#6e8297':(['#778a9a','#a1a1a7','#718d92'][opts.type==='A'?0:opts.type==='B'?1:2]);const ink='#182b3c',phase=(isRed?P.run:t*3+wx*.2),step=Math.sin(phase*1.1)*(isRed?Math.min(Math.abs(P.vx)*2,10):3),bob=(opts.fall?0:Math.abs(Math.sin(phase*.9))*1.7),vis=opts.face||1;
+function humanoid(wx,foot,kind='citizen',opts={}){let x=wx-camera,y=foot;const isRed=kind==='red';const isGolden=kind==='golden';const c=isRed?'#d02337':isGolden?'#6e8297':(['#778a9a','#a1a1a7','#718d92'][opts.type==='A'?0:opts.type==='B'?1:2]);const ink='#182b3c',phase=(isRed?P.run:t*3+wx*.2),step=Math.sin(phase*1.1)*(isRed?(film?.key==='S13'&&film.walking?7:Math.min(Math.abs(P.vx)*2,10)):3),bob=(opts.fall?0:Math.abs(Math.sin(phase*.9))*1.7),vis=opts.face||1;
  if(wx-camera< -100||wx-camera>W+100)return;renderShadow(x,foot,16);
  g.save();g.translate(x,y-bob);g.scale(vis,1);if(opts.hit&&Math.floor(t*18)%2)g.globalAlpha=.55;
  let yHead=-65;if(opts.sitting){g.translate(0,16);yHead=-61;}
@@ -750,7 +823,7 @@ function drawHero(){let qx=P.x,qy=P.y,fall=false,sit=false,reach=false,face=P.fa
    qx=P.x;qy=P.y;
    filmRun=(f<1.1&&idx===0&&['S03','S06','S08','S11'].includes(k))?4:0;
    if(k==='S12'){sit=idx>=1;}
-   if(k==='S13'){reach=idx===2||idx===4||idx===5||idx===7;face=1;}
+   if(k==='S13'){reach=idx===2||idx===4||idx===5||idx===7;face=1;filmRun=film.walking?7:0;}
    if(k==='S14'){reach=true;face=1;}
    if(k==='S06'){reach=idx===2;}
    if(k==='S07'||k==='S10'){reach=idx===1||idx===2;}
@@ -767,15 +840,16 @@ function sceneOverlays(){if(!film)return;const key=film.key,idx=film.idx;
  if(key==='S12'&&idx>=3){const sx=X(6765)-camera;for(let i=0;i<7;i++)line(sx-45,282+i*2,sx+42,282+i*2,'#b2e9e633',1);}
  if(key==='S13'||key==='S14'){
    // The goggle wearer strolls through the frame, stops, and is accidentally shoved.
-   const blondX=key==='S14'?P.x+95:idx<=1?P.x+140-Math.min(22,film.lineTime*12):
-     idx<5?P.x+90:idx===5?P.x+90+Math.min(55,film.lineTime*60):P.x+150;
+   const strangerX=X(7540);
+   const blondX=key==='S14'?strangerX+145:idx<5?strangerX:
+     idx===5?strangerX+Math.min(90,film.lineTime*85):strangerX+110;
    const stumble=key==='S14'||idx>=7;
    humanoid(blondX,GROUND,'golden',{face:-1,reach:idx<5?0:5,hit:idx===5,fall:stumble,run:idx===5?6:0});
    if(idx>=5||key==='S14'){
      const x=blondX-camera,y=GROUND-67;
      for(let r=4;r<=18;r+=7){g.strokeStyle=`rgba(111,228,255,${.4+.3*Math.sin(t*11+r)})`;g.lineWidth=2;g.beginPath();g.arc(x,y,r,0,TAU);g.stroke();}
    }
-   if(key==='S14'){g.fillStyle=`rgba(109,230,255,${.1+.1*Math.sin(t*9)})`;g.fillRect(0,0,W,H);}
+   // Final frame stays clear: do not overlay a translucent blue rectangle.
  }
  if(key==='S01'&&idx===0){const x=X(200)-camera;for(let i=0;i<10;i++){let xx=x+(i-5)*10,yy=90+(i*17+t*95)%220;line(xx,yy,xx-9,yy+22,'#d2eeee81',2);}}
  if(key==='S01'&&idx===1){const x=X(200)-camera,fade=1-clamp(film.lineTime/.6,0,1);for(let i=0;i<14;i++){
@@ -784,12 +858,12 @@ function sceneOverlays(){if(!film)return;const key=film.key,idx=film.idx;
 
 }
 function displayMemoryGlow(){for(const [key,x,y] of [['studio',TWO_SIDE_STUDIOS_CENTRE_X,198],['xforce',X4RCE_CENTRE_X,175]]){if(memory[key])continue;const sx=x-camera;if(sx<0||sx>W)continue;for(let i=0;i<3;i++){let r=10+i*8+Math.sin(t*2+i)*3;g.strokeStyle=`rgba(223,231,152,${.34-i*.1})`;g.lineWidth=1;g.beginPath();g.arc(sx,y,r,0,TAU);g.stroke();}txt('?',sx,y+5,15,'#f5e7aa','center');}}
-function futureDog(){const x=X(6900)-camera;if(x<-85||x>W+80)return;const y=GROUND-3+Math.sin(t*3)*1.4;renderShadow(x,y,36);g.save();g.translate(x,y);R(-28,-34,61,33,'#6a5a53');R(-36,-48,23,23,'#5f524b');R(-32,-59,12,21,'#524944');R(-16,-57,14,19,'#51443e');R(-31,-43,16,12,'#a98e79');R(-32,-40,5,5,'#172e41');R(-3,-8,10,13,'#483c3a');R(22,-8,10,13,'#483c3a');line(34,-26,50+Math.sin(t*5)*6,-44,'#735f59',7);R(-22,-36,5,4,'#eacda1');g.restore();}
+function futureDog(){if(P.x>X(6100))return;const x=X(6900)-camera;if(x<-85||x>W+80)return;const y=GROUND-3+Math.sin(t*3)*1.4;renderShadow(x,y,36);g.save();g.translate(x,y);R(-28,-34,61,33,'#6a5a53');R(-36,-48,23,23,'#5f524b');R(-32,-59,12,21,'#524944');R(-16,-57,14,19,'#51443e');R(-31,-43,16,12,'#a98e79');R(-32,-40,5,5,'#172e41');R(-3,-8,10,13,'#483c3a');R(22,-8,10,13,'#483c3a');line(34,-26,50+Math.sin(t*5)*6,-44,'#735f59',7);R(-22,-36,5,4,'#eacda1');g.restore();}
 function drawProgress(){if(mode==='menu')return;let v=P.x/END;R(260,10,243,3,'#476171');R(260,10,clamp(243*v,0,243),3,'#8fe8da');for(const pt of [X(1580),X(3440),X(5560)]){R(260+pt/END*243,8,3,8,'#e2cc95');}}
 function draw(){g.setTransform(1,0,0,1,0,0);R(0,0,C.width,C.height,'#0e172e');g.setTransform(scale,0,0,scale,ox,oy);g.save();if(shake>0)g.translate((rand(frame)-.5)*shake,(rand(frame+12)-.5)*shake);
  sky();distantSkyline();townHall();glowBeams();traffic();futureStreetInfill();
  church();marketArchitecture();libraryArchitecture();hatArchitecture();riverContinuity();secrets();cityStuff();ground();drawPlatforms();drawMarketHillSign();
-  drawClassicExtras();giantDog();citizensDraw();drawBots();drawLasers();futureDog();if(!film||!['S13','S14'].includes(film.key)){if(mode!=='end')humanoid(X(7462),GROUND,'golden',{face:-1,run:2});}sceneOverlays();drawHero();displayMemoryGlow();
+  drawClassicExtras();giantDog();citizensDraw();drawBots();drawLasers();futureDog();if(!film||!['S13','S14'].includes(film.key)){if(mode!=='end')humanoid(X(7540),GROUND,'golden',{face:-1,run:2});}sceneOverlays();drawHero();displayMemoryGlow();
  for(let i=particles.length-1;i>=0;i--){let pt=particles[i];pt.x+=pt.vx;pt.y+=pt.vy;pt.vy+=.12;pt.life-=1/60;if(pt.life<0)particles.splice(i,1);else{g.globalAlpha=pt.life;R(pt.x-camera,pt.y,3,3,pt.col);g.globalAlpha=1;}}
  if(flash>0){g.fillStyle=`rgba(195,246,250,${flash*.65})`;g.fillRect(0,0,W,H);}
  if(film&&film.key==='S01'){
@@ -800,8 +874,8 @@ function draw(){g.setTransform(1,0,0,1,0,0);R(0,0,C.width,C.height,'#0e172e');g.
    txt('LUTON 2140',W/2,175,25,'#9beae4','center');
    g.restore();
   }
- drawProgress();txt('ALL ON RED!  ·  LEVEL 3  ·  v0.14',16,H-11,10,'#c2e2da');g.restore();}
+ drawProgress();txt('ALL ON RED!  ·  LEVEL 3  ·  v0.15',16,H-11,10,'#c2e2da');g.restore();}
 function step(dt){let intendedCam=clamp(P.x-W*.32,0,END-W);if(film){let focus=film.key==='S01'?X(200):P.x;intendedCam=clamp(focus-W*.35,0,END-W);}camera=lerp(camera,intendedCam,clamp(dt*(film?2.4:6),0,1));update(dt);draw();}
 let last=0;function loop(now){let dt=last?clamp((now-last)/1000,0,.05):1/60;last=now;step(dt);requestAnimationFrame(loop);}updateHUD();requestAnimationFrame(loop);
-window.__L3={status:()=>({mode,x:Math.round(P.x),y:Math.round(P.y),scene:film?.key??null,line:film?.idx??null,memories:memory,hearts,played:[...triggered],audioKeys:Object.keys(VOICE_AUDIO).length,worldLength:END,sceneDistance:Math.round(P.x),sceneKeys:Object.keys(SCENES),marketHillSignX:MARKET_HILL_SIGN_X,studioCentreX:TWO_SIDE_STUDIOS_CENTRE_X,xforceCentreX:X4RCE_CENTRE_X,robotsAlive:securityBots.filter(b=>b.hp>0).length,laserShots:laserShots.length,coinsFound,totalCoins:TOTAL_COINS,allCoinsAwarded,storyCompleted,climbProgress:P.climbProgress,power}),move:(x,y=GROUND)=>{P.x=x;P.y=y;P.vx=0;P.vy=0;P.on=true;},playScene:startFilm,finishScene:skipFilm,skipAll:()=>{if(film){film.idx=film.lines.length-1;advanceLine();}},triggerInteraction:handleInteract,citizens,personX:citizenPos,nearest:getNearest,allScenesAreFilm:AMBIENT_SCENES.size===0,platforms,sceneDefs:SCENES,moments,robots:securityBots,coinsList:chargePickups,heartDrops:healthPickups,quietDebug:()=>{for(const m of moments)triggered.add(m.key);if(film){film.idx=film.lines.length-1;advanceLine();}mode='play';},getVoice:(key)=>Boolean(VOICE_AUDIO[key]),tryClimb:()=>{const old=keys.up;keys.up=true;const r=attemptClimb();keys.up=old;return r;},takeCoins:()=>{for(const c of chargePickups)if(!c.bonus)c.taken=true;coinsFound=TOTAL_COINS;allCoinsAwarded=true;showCollectorResult();updateHUD();}};
+window.__L3={status:()=>({mode,x:Math.round(P.x),y:Math.round(P.y),scene:film?.key??null,line:film?.idx??null,memories:memory,hearts,played:[...triggered],audioKeys:Object.keys(VOICE_AUDIO).length,worldLength:END,sceneDistance:Math.round(P.x),sceneKeys:Object.keys(SCENES),marketHillSignX:MARKET_HILL_SIGN_X,studioCentreX:TWO_SIDE_STUDIOS_CENTRE_X,xforceCentreX:X4RCE_CENTRE_X,robotsAlive:securityBots.filter(b=>b.hp>0).length,laserShots:laserShots.length,coinsFound,totalCoins:TOTAL_COINS,allCoinsAwarded,storyCompleted,climbProgress:P.climbProgress,power}),move:(x,y=GROUND)=>{P.x=x;P.y=y;P.vx=0;P.vy=0;P.on=true;},playScene:startFilm,finishScene:skipFilm,skipAll:()=>{if(film){film.idx=film.lines.length-1;advanceLine();}},triggerInteraction:handleInteract,citizens,personX:citizenPos,nearest:getNearest,allScenesAreFilm:AMBIENT_SCENES.size===0,platforms,sceneDefs:SCENES,moments,robots:securityBots,coinsList:chargePickups,heartDrops:healthPickups,quietDebug:()=>{for(const m of moments)triggered.add(m.key);if(film){film.idx=film.lines.length-1;advanceLine();}mode='play';},getVoice:(key)=>Boolean(VOICE_AUDIO[key]),sfxReady:()=>Object.keys(decodedSfx),controlKeys:keys,releaseControls:resetTouchControls,tryClimb:()=>{const old=keys.up;keys.up=true;const r=attemptClimb();keys.up=old;return r;},takeCoins:()=>{for(const c of chargePickups)if(!c.bonus)c.taken=true;coinsFound=TOTAL_COINS;allCoinsAwarded=true;showCollectorResult();updateHUD();}};
 })()</script></body></html>
