@@ -1,2 +1,2 @@
-// v0.5: unregister any stale offline caches; keep Level 3 updates fresh
+// v0.7: unregister any stale offline caches; keep Level 3 updates fresh
 self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(self.registration.unregister()));
