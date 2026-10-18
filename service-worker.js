@@ -1,3 +1,2 @@
-// Level 3 v0.4 · no persistent caching while testing.
-self.addEventListener('install',()=>self.skipWaiting());
-self.addEventListener('activate',event=>event.waitUntil(self.registration.unregister()));
+// v0.5: unregister any stale offline caches; keep Level 3 updates fresh
+self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>e.waitUntil(self.registration.unregister()));
