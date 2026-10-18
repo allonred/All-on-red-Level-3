@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#10162e"><title>ALL ON RED! — LEVEL 3 · THE FUTURE · v0.10</title><style>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#10162e"><title>ALL ON RED! — LEVEL 3 · THE FUTURE · v0.11</title><style>
 :root{--ink:#171927;--cream:#fff2c6;--pink:#d63444}
 *{box-sizing:border-box;touch-action:none;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#18213b;color:#fff;font:900 13px system-ui,Arial,sans-serif;user-select:none;-webkit-user-select:none}
@@ -143,7 +143,7 @@ body.film #subtitle{bottom:28px}
 <button id="skip">SKIP ▶▶</button>
 <div id="subtitle"><div class="who" id="speaker">RED MAN</div><div class="line" id="spoken">...</div></div><div id="prompt"></div><button id="contextAction" aria-label="Talk or examine">TALK</button>
 <div class="screen" id="menu"><div class="panel"><div class="logo">ALL ON RED!</div>
- <div class="subtitle">LEVEL 3 · THE FUTURE · v0.10</div>
+ <div class="subtitle">LEVEL 3 · THE FUTURE · v0.11</div>
  <div class="desc">The portal has thrown Red Man into a future full of flying cars, baffling citizens and mysterious goggles. Climb futuristic walkways, battle malfunctioning robots and explore. Collect all 27 coins for the optional 100% clear!</div>
  <button class="go" id="start">START LEVEL 3</button><button class="go" id="audioTestMenu" style="margin-left:7px;background:#295975;font-size:12px">♪ TEST SOUND</button>
  <div id="audioStatus" role="status" style="font-size:10px;font-weight:900;margin-top:4px">Audio: tap TEST SOUND to enable</div>
@@ -198,7 +198,8 @@ const chargePickups=[760,1190,1570,2040,2370,2910,3380,3880,4170,4680,5150,5620,
 for(const [x,y] of [[670,246],[850,195],[2035,212],[2250,170],[2850,231],[2960,174],[4050,151],[4330,205],[4910,158],[5140,202],[6185,174],[7240,251]]){
  chargePickups.push({x:X(x),y:y-11,taken:false});
 }
-const TOTAL_COINS=chargePickups.length; // fixed collectible coins; bonus robot drops do not count
+const TOTAL_COINS=chargePickups.length; // exactly 27 placed coins are the optional collection challenge
+const healthPickups=[]; // hearts dropped by defeated robots, independent of Croc coins
 
 function useClassicAttack(kind){
  if(mode!=='play'||gamePause)return;
@@ -213,6 +214,13 @@ function useClassicAttack(kind){
 }
 function updateSpecial(dt){
  attackTimer=Math.max(0,attackTimer-dt);
+ // Robot hearts restore one lost health point; never count toward Croc ammo or the 27 coins.
+ for(let i=healthPickups.length-1;i>=0;i--){const h=healthPickups[i];
+  if(hearts<4 && Math.abs(P.x-h.x)<33 && Math.abs(P.y-h.y)<54){
+   hearts=Math.min(4,hearts+1);spawnSparks(h.x,h.y-22,12);
+   playSfx('scene',.27);healthPickups.splice(i,1);updateHUD();
+  }
+ }
  for(const c of chargePickups){if(!c.taken&&Math.abs(P.x-c.x)<30&&Math.abs(P.y-c.y)<39){
   c.taken=true;power=Math.min(5,power+1);if(!c.bonus)coinsFound++;
   playSfx('coin',.42);spawnSparks(c.x,c.y,7);
@@ -224,6 +232,18 @@ function updateSpecial(dt){
  }
 }
 function drawClassicExtras(){
+ for(const h of healthPickups){
+  const x=h.x-camera,y=h.y-25+Math.sin(t*3+h.x)*3;
+  if(x<-24||x>W+24)continue;
+  g.save();g.translate(x,y);
+  g.globalAlpha=.18+.08*Math.sin(t*4+h.x);circ(0,1,22,'#ff6787');g.globalAlpha=1;
+  // Chunky arcade heart, distinct from the round gold Croc coins.
+  R(-14,-8,11,10,'#601c3d');R(3,-8,11,10,'#601c3d');
+  R(-14,-6,11,11,'#ff5b79');R(3,-6,11,11,'#ff5b79');
+  R(-12,-10,9,7,'#ff91a6');R(3,-10,9,7,'#ff91a6');
+  R(-11,3,22,6,'#f5446f');R(-8,9,16,5,'#e0345b');R(-4,14,8,5,'#c72551');
+  R(-9,-8,5,4,'#ffe3e8');g.restore();
+ }
  for(const c of chargePickups){if(c.taken)continue;const x=c.x-camera;if(x<-20||x>W+20)continue;const y=c.y+Math.sin(t*3+c.x)*5;circ(x,y,10,'#b78237');circ(x,y,8,'#ffe77a');circ(x,y,4,'#fff8ba');}
  for(const c of flyingCrocs){const x=c.x-camera,y=c.y+Math.sin(c.spin)*7;if(x<-40||x>W+40)continue;
   g.save();g.translate(x,y);g.rotate(Math.sin(c.spin)*.25);R(-13,-5,26,14,'#142c79');R(-12,-8,25,13,'#2f73ec');R(-8,-12,13,6,'#4b9dff');for(let j=0;j<3;j++)R(-5+j*7,-4,3,3,'#dcf4ff');R(-13,8,29,3,'#f7f1df');g.restore();}
@@ -255,12 +275,12 @@ const citizens=[
  {x:4000,type:'B',talk:'N05'},
  {x:5520,type:'C',talk:'N06'},
  {x:7110,type:'A',talk:'N07'},
- {x:1768,type:'B',sceneActor:'S05'},
+ {x:1672,type:'B',sceneActor:'S05'},
  {x:3020,type:'A',sceneActor:'S06'},
  {x:4387,type:'C',sceneActor:'S08'},
  // Familiar local faces drift through the street in a goggle-induced haze.
  ...Array.from({length:91},(_,i)=>180+i*80)
-   .filter(x=>[510,1260,2260,3500,4000,5520,7110,1768,3020,4387,7462]
+   .filter(x=>[510,1260,2260,3500,4000,5520,7110,1672,3020,4387,7462]
      .every(stop=>Math.abs(stop-x)>115))
    .map((x,i)=>({x,type:['A','B','C','B','A'][i%5],roam:60+(i%5)*29,
        speed:.28+(i%6)*.075,phase:i*1.71,unresponsive:i%3!==1,
@@ -274,7 +294,7 @@ function citizenPos(n){
 }
 // Malfunctioning floor-cleaner / security sentries. Non-human obstacles, never citizens.
 const securityBots=[
- {x:694,left:654,right:730,type:1}, {x:1090,left:1040,right:1155,type:0}, {x:1660,left:1630,right:1690,type:1},
+ {x:694,left:654,right:730,type:1}, {x:1090,left:1040,right:1155,type:0}, {x:1585,left:1540,right:1617,type:1},
  {x:1930,left:1870,right:1980,type:2}, {x:2360,left:2300,right:2490,type:0},
  {x:2730,left:2700,right:2820,type:1}, {x:3320,left:3230,right:3360,type:2},
  {x:3740,left:3700,right:3830,type:0}, {x:4150,left:4100,right:4210,type:1},
@@ -289,9 +309,9 @@ for(let x=1500,i=0;x<END-1300;x+=735,i++){
  securityBots.push({x,left:x-95,right:x+95,y:GROUND,hp:i%3===1?3:2,dir:i%2?1:-1,type:i%3,phase:i*.63,flash:0,stun:0,laserTimer:2.2+(i%4)*.5,laserWarmup:0,aimDir:1});
 } 
 function damageBot(bot,n){if(bot.hp<=0)return;bot.hp=Math.max(0,bot.hp-n);bot.flash=.26;bot.stun=.3;playSfx('hurt',.21);spawnSparks(bot.x,bot.y-39,11);
- if(bot.hp===0){chargePickups.push({x:bot.x,y:bot.y-11,taken:false,bonus:true});playSfx('boom',.3);spawnSparks(bot.x,bot.y-27,22);}}
+ if(bot.hp===0){healthPickups.push({x:bot.x,y:bot.y-11});playSfx('boom',.3);spawnSparks(bot.x,bot.y-27,22);}}
 // Robot projectiles are deliberately visible and dodgeable: a short warm-up,
-// followed by one laser pulse on a two-second cooldown while the hero is nearby.
+// followed by one laser pulse with a four-second cooldown while the hero is nearby.
 const laserShots=[];
 function shootLaser(bot){
  const dir=P.x<bot.x?-1:1;bot.aimDir=dir;
@@ -356,7 +376,7 @@ function drawBots(){for(const b of securityBots){if(b.hp<=0)continue;const x=b.x
  if(b.flash>0){circ(0,-44,29,'#d9fbff22');}g.restore();}}
 const zones=[{a:0,b:X(1580),name:'CHURCH STREET',scene:'S03'},{a:X(1580),b:X(3440),name:'MARKET HILL',scene:'S05'},{a:X(3440),b:X(5560),name:'ST GEORGE’S SQUARE',scene:'S08'},{a:X(5560),b:END,name:'HAT GARDENS',scene:'S12'}];
 // Cutscene markers are at the approach to each landmark, not after it.
-const moments=[{key:'S02',x:X(489)},{key:'S03',x:X(806)},{key:'S04',x:X(1510)},{key:'S05',x:X(1741)},{key:'S06',x:X(2994)},{key:'S08',x:X(4360)},{key:'S09',x:X(4950)},{key:'S11',x:X(6110)},{key:'S12',x:X(6410)}];
+const moments=[{key:'S02',x:X(489)},{key:'S03',x:X(806)},{key:'S04',x:X(1510)},{key:'S05',x:X(1661)},{key:'S06',x:X(2994)},{key:'S08',x:X(4360)},{key:'S09',x:X(4950)},{key:'S11',x:X(6110)},{key:'S12',x:X(6410)}];
 let interacted=new Set(),shownBarks=new Set(),firstRealClimb=false;let ambientTalk=null,ambientQueue=[],lastCinematicTime=-99,lastAmbientEnd=-99;const AMBIENT_SCENES=new Set();const triggered=new Set();const zoneOf=x=>zones.findIndex(z=>x>=z.a&&x<z.b);function activePlatformY(q){return q.y+Math.sin(t*.9+q.phase)*q.move;}
 function getSceneLineDuration(line){if(line.duration)return line.duration;const dur=VOICE_DUR[line.id];return Math.max(.52,Math.min(25,(dur||Math.max(1.25,line.text.length/16))+.18));}
 const triggerPoints={S01:130,S02:X(310),S03:X(790),S04:X(1270),S05:X(1850),S06:X(2420),S07:X(2950),S08:X(3620),S09:X(4330),S10:X(5000),S11:X(5770),S12:X(6660),N01:X(510),N02:X(1260),N03:X(2260),N04:X(3500),N05:X(4000),N06:X(5520),N07:X(7110),S13:X(7400),S14:X(7470)};
@@ -749,8 +769,8 @@ function draw(){g.setTransform(1,0,0,1,0,0);R(0,0,C.width,C.height,'#0e172e');g.
    txt('LUTON 2140',W/2,175,25,'#9beae4','center');
    g.restore();
   }
- drawProgress();txt('ALL ON RED!  ·  LEVEL 3  ·  v0.10',16,H-11,10,'#c2e2da');g.restore();}
+ drawProgress();txt('ALL ON RED!  ·  LEVEL 3  ·  v0.11',16,H-11,10,'#c2e2da');g.restore();}
 function step(dt){let intendedCam=clamp(P.x-W*.32,0,END-W);if(film){let focus=film.key==='S01'?X(200):P.x;intendedCam=clamp(focus-W*.35,0,END-W);}camera=lerp(camera,intendedCam,clamp(dt*(film?2.4:6),0,1));update(dt);draw();}
 let last=0;function loop(now){let dt=last?clamp((now-last)/1000,0,.05):1/60;last=now;step(dt);requestAnimationFrame(loop);}updateHUD();requestAnimationFrame(loop);
-window.__L3={status:()=>({mode,x:Math.round(P.x),y:Math.round(P.y),scene:film?.key??null,line:film?.idx??null,memories:memory,hearts,played:[...triggered],audioKeys:Object.keys(VOICE_AUDIO).length,worldLength:END,sceneDistance:Math.round(P.x),sceneKeys:Object.keys(SCENES),robotsAlive:securityBots.filter(b=>b.hp>0).length,laserShots:laserShots.length,coinsFound,totalCoins:TOTAL_COINS,allCoinsAwarded,storyCompleted,climbProgress:P.climbProgress,power}),move:(x,y=GROUND)=>{P.x=x;P.y=y;P.vx=0;P.vy=0;P.on=true;},playScene:startFilm,finishScene:skipFilm,skipAll:()=>{if(film){film.idx=film.lines.length-1;advanceLine();}},triggerInteraction:handleInteract,citizens,personX:citizenPos,nearest:getNearest,allScenesAreFilm:AMBIENT_SCENES.size===0,platforms,sceneDefs:SCENES,moments,robots:securityBots,coinsList:chargePickups,quietDebug:()=>{for(const m of moments)triggered.add(m.key);if(film){film.idx=film.lines.length-1;advanceLine();}mode='play';},getVoice:(key)=>Boolean(VOICE_AUDIO[key]),tryClimb:()=>{const old=keys.up;keys.up=true;const r=attemptClimb();keys.up=old;return r;},takeCoins:()=>{for(const c of chargePickups)if(!c.bonus)c.taken=true;coinsFound=TOTAL_COINS;allCoinsAwarded=true;showCollectorResult();updateHUD();}};
+window.__L3={status:()=>({mode,x:Math.round(P.x),y:Math.round(P.y),scene:film?.key??null,line:film?.idx??null,memories:memory,hearts,played:[...triggered],audioKeys:Object.keys(VOICE_AUDIO).length,worldLength:END,sceneDistance:Math.round(P.x),sceneKeys:Object.keys(SCENES),robotsAlive:securityBots.filter(b=>b.hp>0).length,laserShots:laserShots.length,coinsFound,totalCoins:TOTAL_COINS,allCoinsAwarded,storyCompleted,climbProgress:P.climbProgress,power}),move:(x,y=GROUND)=>{P.x=x;P.y=y;P.vx=0;P.vy=0;P.on=true;},playScene:startFilm,finishScene:skipFilm,skipAll:()=>{if(film){film.idx=film.lines.length-1;advanceLine();}},triggerInteraction:handleInteract,citizens,personX:citizenPos,nearest:getNearest,allScenesAreFilm:AMBIENT_SCENES.size===0,platforms,sceneDefs:SCENES,moments,robots:securityBots,coinsList:chargePickups,heartDrops:healthPickups,quietDebug:()=>{for(const m of moments)triggered.add(m.key);if(film){film.idx=film.lines.length-1;advanceLine();}mode='play';},getVoice:(key)=>Boolean(VOICE_AUDIO[key]),tryClimb:()=>{const old=keys.up;keys.up=true;const r=attemptClimb();keys.up=old;return r;},takeCoins:()=>{for(const c of chargePickups)if(!c.bonus)c.taken=true;coinsFound=TOTAL_COINS;allCoinsAwarded=true;showCollectorResult();updateHUD();}};
 })()</script></body></html>
