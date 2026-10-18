@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#10162e"><title>ALL ON RED! — LEVEL 3 · THE FUTURE · v0.9</title><style>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#10162e"><title>ALL ON RED! — LEVEL 3 · THE FUTURE · v0.10</title><style>
 :root{--ink:#171927;--cream:#fff2c6;--pink:#d63444}
 *{box-sizing:border-box;touch-action:none;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#18213b;color:#fff;font:900 13px system-ui,Arial,sans-serif;user-select:none;-webkit-user-select:none}
@@ -143,7 +143,7 @@ body.film #subtitle{bottom:28px}
 <button id="skip">SKIP ▶▶</button>
 <div id="subtitle"><div class="who" id="speaker">RED MAN</div><div class="line" id="spoken">...</div></div><div id="prompt"></div><button id="contextAction" aria-label="Talk or examine">TALK</button>
 <div class="screen" id="menu"><div class="panel"><div class="logo">ALL ON RED!</div>
- <div class="subtitle">LEVEL 3 · THE FUTURE · v0.9</div>
+ <div class="subtitle">LEVEL 3 · THE FUTURE · v0.10</div>
  <div class="desc">The portal has thrown Red Man into a future full of flying cars, baffling citizens and mysterious goggles. Climb futuristic walkways, battle malfunctioning robots and explore. Collect all 27 coins for the optional 100% clear!</div>
  <button class="go" id="start">START LEVEL 3</button><button class="go" id="audioTestMenu" style="margin-left:7px;background:#295975;font-size:12px">♪ TEST SOUND</button>
  <div id="audioStatus" role="status" style="font-size:10px;font-weight:900;margin-top:4px">Audio: tap TEST SOUND to enable</div>
@@ -281,12 +281,12 @@ const securityBots=[
  {x:4520,left:4490,right:4620,type:2}, {x:5240,left:5200,right:5350,type:0},
  {x:5830,left:5770,right:5920,type:1}, {x:6420,left:6380,right:6540,type:2},
  {x:6910,left:6875,right:7000,type:0}
-].map((s,i)=>({...s,x:X(s.x),left:X(s.left),right:X(s.right),y:GROUND,hp:i%3===1?3:2,dir:i%2?1:-1,phase:i*.73,flash:0,stun:0,laserTimer:.3+(i%5)*.18,laserWarmup:0,aimDir:1}));
+].map((s,i)=>({...s,x:X(s.x),left:X(s.left),right:X(s.right),y:GROUND,hp:i%3===1?3:2,dir:i%2?1:-1,phase:i*.73,flash:0,stun:0,laserTimer:2.0+(i%5)*.45,laserWarmup:0,aimDir:1}));
 // More fighting room: bots patrol the travel corridors, but never crowd NPCs or cinematic entrances.
 const safeStops=[...citizens.map(n=>n.x),...['S02','S03','S04','S05','S06','S08','S09','S11','S12'].map(k=>X({S02:489,S03:806,S04:1510,S05:1741,S06:2994,S08:4360,S09:4950,S11:6110,S12:6410}[k]))];
 for(let x=1500,i=0;x<END-1300;x+=735,i++){
  if(safeStops.some(v=>Math.abs(x-v)<490))continue;
- securityBots.push({x,left:x-95,right:x+95,y:GROUND,hp:i%3===1?3:2,dir:i%2?1:-1,type:i%3,phase:i*.63,flash:0,stun:0,laserTimer:.75+(i%4)*.24,laserWarmup:0,aimDir:1});
+ securityBots.push({x,left:x-95,right:x+95,y:GROUND,hp:i%3===1?3:2,dir:i%2?1:-1,type:i%3,phase:i*.63,flash:0,stun:0,laserTimer:2.2+(i%4)*.5,laserWarmup:0,aimDir:1});
 } 
 function damageBot(bot,n){if(bot.hp<=0)return;bot.hp=Math.max(0,bot.hp-n);bot.flash=.26;bot.stun=.3;playSfx('hurt',.21);spawnSparks(bot.x,bot.y-39,11);
  if(bot.hp===0){chargePickups.push({x:bot.x,y:bot.y-11,taken:false,bonus:true});playSfx('boom',.3);spawnSparks(bot.x,bot.y-27,22);}}
@@ -307,12 +307,12 @@ function updateBots(dt){for(const bot of securityBots){if(bot.hp<=0){bot.laserWa
  const close=Math.abs(P.x-bot.x)<495 && Math.abs(P.y-bot.y)<180;
  if(close){
    if(bot.laserWarmup>0){bot.laserWarmup-=dt;
-     if(bot.laserWarmup<=0){bot.laserWarmup=0;if(bot.hp>0)shootLaser(bot);bot.laserTimer=1.7;}
+     if(bot.laserWarmup<=0){bot.laserWarmup=0;if(bot.hp>0)shootLaser(bot);bot.laserTimer=4.0;}
    }else{
      bot.laserTimer=Math.max(0,(bot.laserTimer??.6)-dt);
      if(bot.laserTimer<=0){bot.laserWarmup=.3;bot.aimDir=P.x<bot.x?-1:1;playSfx('laser_charge',.20);}
    }
- }else{bot.laserWarmup=0;bot.laserTimer=Math.max(.12,Math.min(bot.laserTimer??.6,.8));}
+ }else{bot.laserWarmup=0;bot.laserTimer=Math.max(.5,Math.min(bot.laserTimer??2.0,2.0));}
  if(P.hit<=0&&Math.abs(P.x-bot.x)<26&&Math.abs(P.y-bot.y)<37)harm();
  }}
 function updateLasers(dt){
@@ -545,21 +545,21 @@ function marketArchitecture(){if(!visible(1550,1820))return;const x=worldX(1550)
  // Market Hill terraced amphitheatre, courts in the upper background
  R(0,260,1610,82,'#675d64');R(12,265,1535,70,'#b4a49c');for(let z=0;z<7;z++){const tx=80+z*220;R(tx,270-z*5,160,10,'#e4d1b1');R(tx+10,280-z*5,150,10,'#827578');for(let i=0;i<6;i++)R(tx+i*25,283-z*5,18,3,'#6d6869');}
  R(405,115,310,166,'#606b75');R(423,99,278,169,'#b5b3a5');R(417,94,290,11,'#e2d5bb');R(436,89,247,8,'#647487');txt('CIVIC COURTS',560,125,16,'#423e55','center');for(let i=0;i<6;i++){const wx=443+i*43;R(wx,137,29,116,'#d8cbb4');R(wx+9,140,7,112,'#81919b');R(wx+30,138,4,116,'#eee3c9');R(wx-3,251,42,7,'#817f81');}
- R(10,186,290,75,'#51637a');for(let j=0;j<7;j++)windows(23+j*37,198,30,41);R(986,135,390,130,'#3d5870');for(let i=0;i<8;i++)windows(1003+i*45,151,36,54);R(1010,129,270,7,'#97d6db');txt('MARKET HILL',111,225,18,'#d6f6f3','center');
+ R(10,186,290,75,'#51637a');for(let j=0;j<7;j++)windows(23+j*37,198,30,41);R(986,135,390,130,'#3d5870');for(let i=0;i<8;i++)windows(1003+i*45,151,36,54);R(1010,129,270,7,'#97d6db');txt('ORBIT EXCHANGE',205,152,16,'#b3f5ec','center');txt('AETHER ROW',1170,148,15,'#b8eff7','center');txt('MARKET HILL',111,225,18,'#d6f6f3','center');
  for(let i=0;i<15;i++)R(30+i*105,309,80,3,'#f1e6cb65');for(let i=0;i<13;i++){const xx=34+i*120;R(xx,296,4,43,'#546778');R(xx-7,292,20,5,'#75d9db');}
  g.restore();}
 function libraryArchitecture(){if(!visible(4350,2110))return;const x=worldX(4350);g.save();g.translate(x,0);
  // Public square & central library facade, inspired by actual paving, long benches and blue step illumination
- R(0,185,2010,157,'#526777');R(90,147,1240,174,'#596676');R(108,140,1220,14,'#e2d7bb');R(120,123,1200,18,'#2a3d52');txt('CENTRAL LIBRARY',560,143,19,'#b0efea','center');
+ R(0,185,2010,157,'#526777');R(90,147,1240,174,'#596676');R(108,140,1220,14,'#e2d7bb');R(120,123,1200,18,'#2a3d52');txt('CENTRAL LIBRARY',560,143,19,'#b0efea','center');txt('NEXUS GALLERIA',165,132,14,'#d3f2ef');
  for(let i=0;i<18;i++){const wx=143+i*63;windows(wx,165,49,114);if(i%2===0)R(wx+47,158,4,123,'#ccd8be');}
  R(180,285,1100,40,'#c2b8a8');for(let i=0;i<16;i++)R(203+i*66,297,52,3,'#6e8d9c');
- R(1410,182,465,142,'#59738a');for(let i=0;i<8;i++)windows(1430+i*52,199,38,80);R(1440,155,400,21,'#1a4254');txt('CIVIC PLAZA · VISION GRID',1650,171,14,'#c6e6e1','center');
+ R(1410,182,465,142,'#59738a');for(let i=0;i<8;i++)windows(1430+i*52,199,38,80);R(1440,155,400,21,'#1a4254');txt('CIVIC PLAZA · VISION GRID',1650,171,14,'#c6e6e1','center');txt('SKYDOCK TERRACE',1650,193,12,'#93cdd2','center');
  // fountains and water jets with animated glow
  for(let i=0;i<18;i++){let xx=72+i*100;R(xx,335,82,6,'#274d71');R(xx,333,82,3,'#67dffc');R(xx+32,322,4,10,'#5adae0');if(i%2===0){let h=17+Math.sin(t*3+i)*11;line(xx+36,320,xx+36,320-h,'#82ecff77',3);}}
  for(let i=0;i<6;i++){const bx=60+i*290;R(bx,282,135,8,'#203c5a');R(bx+3,279,129,4,'#79dfeb');R(bx+12,290,6,20,'#6a8ca0');R(bx+116,290,6,20,'#6a8ca0');}
  g.restore();}
 function hatArchitecture(){if(!visible(6100,2130))return;const x=worldX(6100);g.save();g.translate(x,0);
- R(0,198,1920,139,'#6d6b6b');R(0,196,1920,7,'#b8b0a2');for(let i=0;i<11;i++){let bx=i*190;R(bx,181,166,143,i%2?'#7c6c67':'#99938b');R(bx+18,159,129,24,'#a0a6a3');for(let j=0;j<5;j++)windows(bx+18+j*25,204,18,50);}
+ R(0,198,1920,139,'#6d6b6b');R(0,196,1920,7,'#b8b0a2');for(let i=0;i<11;i++){let bx=i*190;R(bx,181,166,143,i%2?'#7c6c67':'#99938b');R(bx+18,159,129,24,'#a0a6a3');for(let j=0;j<5;j++)windows(bx+18+j*25,204,18,50);const names=['PULSE COURT','HOLOMART','NOVA QUAY','GLIMMER POINT','AERIUM','ECHO PLACE','VANTAGE LOFT','QUANTUM WALK','SKYFRAME','LUMA YARD','PRISM HOUSE'];txt(names[i],bx+83,175,11,'#f0f0d0','center');}
  // historic Bute St bridge and exposed Lea cut; tiered grassy terrace
  R(750,305,720,58,'#364858');R(750,295,720,10,'#bec3b5');R(835,292,570,5,'#4c7c8b');
  for(let s=0;s<7;s++){const sx=880+s*72,sy=291+s*8;R(sx,sy,76,9,'#b9baa6');R(sx,sy+8,76,6,'#60796c');R(sx+5,sy+13,68,7,'#568f75');}
@@ -571,8 +571,8 @@ function hatArchitecture(){if(!visible(6100,2130))return;const x=worldX(6100);g.
  for(const f of [1140,1250]){R(f,302,3,24,'#ff91ac');R(f+6,300,3,26,'#ff91ac');circ(f+4,296,12,'#ef759a');line(f+8,291,f+15,280,'#ef759a',3);circ(f+15,276,5,'#e28aa6');R(f+17,277,8,3,'#dcd2a8');}
  txt('HAT GARDENS',840,232,18,'#e9f1cd');g.restore();}
 function secrets(){// Rusted fictional futures, real logo assets intentionally not invented
- if(visible(2835,350)){const x=worldX(2862);R(x,116,270,159,'#344553');R(x+9,108,252,8,'#5f686c');R(x+13,129,240,56,'#3f6474');R(x+17,135,233,3,'#9aa59c');txt('TWO SIDE STUDIOS',x+135,163,15,'#d4cbb0','center');R(x+38,192,195,75,'#202b36');for(let i=0;i<10;i++)R(x+44+i*17,198,7,67,'#405363');R(x+4,265,263,8,'#696e70');noiseDots(x+19,129,226,115,44,'#9d8d83',30);R(x+212,103,17,10,'#6a8081');}
- if(visible(4940,430)){const x=worldX(4950);R(x,102,358,161,'#354f54');R(x+7,113,344,12,'#667c7c');R(x+20,138,314,41,'#476664');R(x+18,134,317,4,'#789495');txt('X-4RCE',x+180,163,23,'#c4dbc1','center');txt('COMMUNITY HUB',x+180,183,12,'#9aaea3','center');R(x+50,192,260,69,'#273c45');for(let i=0;i<14;i++)R(x+60+i*18,197,7,63,'#566769');R(x+21,257,316,6,'#8b8278');noiseDots(x+16,127,330,120,113,'#d4bda258',45);}
+ if(visible(2835,350)){const x=worldX(2862);R(x,116,270,159,'#344553');R(x+9,108,252,8,'#5f686c');R(x+13,129,240,56,'#3f6474');R(x+17,135,233,3,'#9aa59c');R(x+24,144,222,28,'#2b3238');txt('TWO SIDE STUDIOS',x+135,164,18,'#f1dcc0','center');R(x+38,192,195,75,'#202b36');for(let i=0;i<10;i++)R(x+44+i*17,198,7,67,'#405363');for(let i=0;i<7;i++){let bx=x+46+i*27, by=203+(i%2)*8; poly([[bx,by],[bx+42,by+6],[bx+38,by+14],[bx-4,by+8]],'#8d6e49'); line(bx+4,by+2,bx+33,by+10,'#b9986b',3);}R(x+4,265,263,8,'#696e70');noiseDots(x+19,129,226,115,44,'#9d8d83',30);R(x+212,103,17,10,'#6a8081');}
+ if(visible(4940,430)){const x=worldX(4950);R(x,102,358,161,'#354f54');R(x+7,113,344,12,'#667c7c');R(x+20,138,314,41,'#476664');R(x+18,134,317,4,'#789495');R(x+72,144,216,28,'#2a3830');txt('X-4RCE',x+180,162,23,'#d2e4cb','center');txt('COMMUNITY HUB',x+180,182,12,'#9aaea3','center');R(x+50,192,260,69,'#273c45');for(let i=0;i<14;i++)R(x+60+i*18,197,7,63,'#566769');for(let i=0;i<8;i++){let bx=x+64+i*28, by=202+(i%2)*10; poly([[bx,by],[bx+46,by+8],[bx+42,by+16],[bx-4,by+8]],'#7e6445'); line(bx+5,by+3,bx+36,by+11,'#bf9a68',3);}R(x+21,257,316,6,'#8b8278');noiseDots(x+16,127,330,120,113,'#d4bda258',45);}
 }
 function ground(){// Every zone has a reachable continuous foreground deck, but varying visual surfaces
  const y=GROUND;R(0,y,W,H-y,'#243444');R(0,y,W,7,'#859ead');R(0,y-4,W,3,'#bdd6cc');
@@ -749,7 +749,7 @@ function draw(){g.setTransform(1,0,0,1,0,0);R(0,0,C.width,C.height,'#0e172e');g.
    txt('LUTON 2140',W/2,175,25,'#9beae4','center');
    g.restore();
   }
- drawProgress();txt('ALL ON RED!  ·  LEVEL 3  ·  v0.9',16,H-11,10,'#c2e2da');g.restore();}
+ drawProgress();txt('ALL ON RED!  ·  LEVEL 3  ·  v0.10',16,H-11,10,'#c2e2da');g.restore();}
 function step(dt){let intendedCam=clamp(P.x-W*.32,0,END-W);if(film){let focus=film.key==='S01'?X(200):P.x;intendedCam=clamp(focus-W*.35,0,END-W);}camera=lerp(camera,intendedCam,clamp(dt*(film?2.4:6),0,1));update(dt);draw();}
 let last=0;function loop(now){let dt=last?clamp((now-last)/1000,0,.05):1/60;last=now;step(dt);requestAnimationFrame(loop);}updateHUD();requestAnimationFrame(loop);
 window.__L3={status:()=>({mode,x:Math.round(P.x),y:Math.round(P.y),scene:film?.key??null,line:film?.idx??null,memories:memory,hearts,played:[...triggered],audioKeys:Object.keys(VOICE_AUDIO).length,worldLength:END,sceneDistance:Math.round(P.x),sceneKeys:Object.keys(SCENES),robotsAlive:securityBots.filter(b=>b.hp>0).length,laserShots:laserShots.length,coinsFound,totalCoins:TOTAL_COINS,allCoinsAwarded,storyCompleted,climbProgress:P.climbProgress,power}),move:(x,y=GROUND)=>{P.x=x;P.y=y;P.vx=0;P.vy=0;P.on=true;},playScene:startFilm,finishScene:skipFilm,skipAll:()=>{if(film){film.idx=film.lines.length-1;advanceLine();}},triggerInteraction:handleInteract,citizens,personX:citizenPos,nearest:getNearest,allScenesAreFilm:AMBIENT_SCENES.size===0,platforms,sceneDefs:SCENES,moments,robots:securityBots,coinsList:chargePickups,quietDebug:()=>{for(const m of moments)triggered.add(m.key);if(film){film.idx=film.lines.length-1;advanceLine();}mode='play';},getVoice:(key)=>Boolean(VOICE_AUDIO[key]),tryClimb:()=>{const old=keys.up;keys.up=true;const r=attemptClimb();keys.up=old;return r;},takeCoins:()=>{for(const c of chargePickups)if(!c.bonus)c.taken=true;coinsFound=TOTAL_COINS;allCoinsAwarded=true;showCollectorResult();updateHUD();}};
