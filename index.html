@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#10162e"><title>ALL ON RED! — LEVEL 3 · THE FUTURE · v0.12</title><style>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#10162e"><title>ALL ON RED! — LEVEL 3 · THE FUTURE · v0.13</title><style>
 :root{--ink:#171927;--cream:#fff2c6;--pink:#d63444}
 *{box-sizing:border-box;touch-action:none;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#18213b;color:#fff;font:900 13px system-ui,Arial,sans-serif;user-select:none;-webkit-user-select:none}
@@ -143,7 +143,7 @@ body.film #subtitle{bottom:28px}
 <button id="skip">SKIP ▶▶</button>
 <div id="subtitle"><div class="who" id="speaker">RED MAN</div><div class="line" id="spoken">...</div></div><div id="prompt"></div><button id="contextAction" aria-label="Talk or examine">TALK</button>
 <div class="screen" id="menu"><div class="panel"><div class="logo">ALL ON RED!</div>
- <div class="subtitle">LEVEL 3 · THE FUTURE · v0.12</div>
+ <div class="subtitle">LEVEL 3 · THE FUTURE · v0.13</div>
  <div class="desc">The portal has thrown Red Man into a future full of flying cars, baffling citizens and mysterious goggles. Climb futuristic walkways, battle malfunctioning robots and explore. Collect all 27 coins for the optional 100% clear!</div>
  <button class="go" id="start">START LEVEL 3</button><button class="go" id="audioTestMenu" style="margin-left:7px;background:#295975;font-size:12px">♪ TEST SOUND</button>
  <div id="audioStatus" role="status" style="font-size:10px;font-weight:900;margin-top:4px">Audio: tap TEST SOUND to enable</div>
@@ -377,6 +377,8 @@ function drawBots(){for(const b of securityBots){if(b.hp<=0)continue;const x=b.x
 // The signpost and S05 event share one map position. No stretch-coordinate guesswork.
 const MARKET_HILL_SIGN_X=X(1550)+220;
 const MARKET_HILL_SCENE_X=MARKET_HILL_SIGN_X-56;
+// Keep Two Side Studios art, examine prompt and memory marker at ONE visual centre.
+const TWO_SIDE_STUDIOS_CENTRE_X=X(2862)+135;
 const zones=[{a:0,b:X(1580),name:'CHURCH STREET',scene:'S03'},{a:X(1580),b:X(3440),name:'MARKET HILL',scene:'S05'},{a:X(3440),b:X(5560),name:'ST GEORGE’S SQUARE',scene:'S08'},{a:X(5560),b:END,name:'HAT GARDENS',scene:'S12'}];
 // Cutscene markers are at the approach to each landmark, not after it.
 const moments=[{key:'S02',x:X(489)},{key:'S03',x:X(806)},{key:'S04',x:X(1510)},{key:'S05',x:MARKET_HILL_SCENE_X},{key:'S06',x:X(2994)},{key:'S08',x:X(4360)},{key:'S09',x:X(4950)},{key:'S11',x:X(6110)},{key:'S12',x:X(6410)}];
@@ -448,7 +450,7 @@ function updateFilm(dt){if(!film)return;film.elapsed+=dt;film.lineTime+=dt;
 function harm(){if(P.hit>0||mode!=='play')return;hearts=Math.max(0,hearts-1);P.hit=1.25;P.vx=-P.face*6;P.vy=-6.6;P.on=false;shake=8;flash=.37;playSfx('hurt',.47);if(!shownBarks.has('B02')){shownBarks.add('B02');playBark('B02');}if(hearts===0){hearts=4;P.x=checkpoint;P.y=GROUND;P.vx=0;P.vy=0;msg('RECALIBRATED AT CHECKPOINT',2);}}
 function playBark(k){if(mode!=='play'||film||!VOICE_AUDIO['L3_'+k+'_RED'])return;const key='L3_'+k+'_RED';if(!audio.paused)return;playVoice(key);}
 function getNearest(){let found=null,best=85;for(const npc of citizens){if(npc.sceneActor&&!npc.talk)continue;const x=citizenPos(npc);if(Math.abs(P.x-x)<best&&Math.abs(P.y-GROUND)<75){found={kind:'npc',data:npc,x};best=Math.abs(P.x-x);}}
- if(!memory.studio&&P.x>X(2815)&&P.x<X(3195)&&P.y<255){found={kind:'secret',data:'studio',x:X(2970)};}
+ if(!memory.studio&&Math.abs(P.x-TWO_SIDE_STUDIOS_CENTRE_X)<110&&P.y<255){found={kind:'secret',data:'studio',x:TWO_SIDE_STUDIOS_CENTRE_X};}
  if(!memory.xforce&&P.x>X(4830)&&P.x<X(5270)&&P.y<290){found={kind:'secret',data:'xforce',x:X(5070)};}
  return found;}
 function handleInteract(){if(mode!=='play')return;let n=getNearest();if(!n){msg('NOBODY CLOSE ENOUGH TO TALK TO',1.5);return;}if(n.kind==='secret'){if(n.data==='studio'){memory.studio=true;startFilm('S07',()=>{updateHUD();msg('MEMORY GLITCH FOUND · TWO SIDE STUDIOS',3);});}else{memory.xforce=true;startFilm('S10',()=>{updateHUD();msg('MEMORY GLITCH FOUND · X-4RCE',3);});}return;}
@@ -511,7 +513,7 @@ function update(dt){t+=dt;frame++; if(shake>0)shake=Math.max(0,shake-dt*13);if(f
 
   const promptBtn=$('contextAction');
   if(n&&mode==='play'&&!gamePause){
-   const targetY=n.kind==='secret'?(n.data==='studio'?160:155):GROUND-90;
+   const targetY=n.kind==='secret'?(n.data==='studio'?198:155):GROUND-90;
    const x=Math.max(62,Math.min(innerWidth-62,((n.x-camera)*scale+ox)/DPR));
    const y=Math.max(70,Math.min(innerHeight-84,((targetY)*scale+oy)/DPR));
    promptBtn.style.left=x+'px';promptBtn.style.top=y+'px';
@@ -779,7 +781,7 @@ function sceneOverlays(){if(!film)return;const key=film.key,idx=film.idx;
   if(film.lineTime<.22)txt('THUD!',x,GROUND-115,24,'#ffe7a2','center');}
 
 }
-function displayMemoryGlow(){for(const [key,x,y] of [['studio',X(2980),165],['xforce',X(5115),175]]){if(memory[key])continue;const sx=x-camera;if(sx<0||sx>W)return;for(let i=0;i<3;i++){let r=10+i*8+Math.sin(t*2+i)*3;g.strokeStyle=`rgba(223,231,152,${.34-i*.1})`;g.lineWidth=1;g.beginPath();g.arc(sx,y,r,0,TAU);g.stroke();}txt('?',sx,y+5,15,'#f5e7aa','center');}}
+function displayMemoryGlow(){for(const [key,x,y] of [['studio',TWO_SIDE_STUDIOS_CENTRE_X,198],['xforce',X(5115),175]]){if(memory[key])continue;const sx=x-camera;if(sx<0||sx>W)return;for(let i=0;i<3;i++){let r=10+i*8+Math.sin(t*2+i)*3;g.strokeStyle=`rgba(223,231,152,${.34-i*.1})`;g.lineWidth=1;g.beginPath();g.arc(sx,y,r,0,TAU);g.stroke();}txt('?',sx,y+5,15,'#f5e7aa','center');}}
 function futureDog(){const x=X(6900)-camera;if(x<-85||x>W+80)return;const y=GROUND-3+Math.sin(t*3)*1.4;renderShadow(x,y,36);g.save();g.translate(x,y);R(-28,-34,61,33,'#6a5a53');R(-36,-48,23,23,'#5f524b');R(-32,-59,12,21,'#524944');R(-16,-57,14,19,'#51443e');R(-31,-43,16,12,'#a98e79');R(-32,-40,5,5,'#172e41');R(-3,-8,10,13,'#483c3a');R(22,-8,10,13,'#483c3a');line(34,-26,50+Math.sin(t*5)*6,-44,'#735f59',7);R(-22,-36,5,4,'#eacda1');g.restore();}
 function drawProgress(){if(mode==='menu')return;let v=P.x/END;R(260,10,243,3,'#476171');R(260,10,clamp(243*v,0,243),3,'#8fe8da');for(const pt of [X(1580),X(3440),X(5560)]){R(260+pt/END*243,8,3,8,'#e2cc95');}}
 function draw(){g.setTransform(1,0,0,1,0,0);R(0,0,C.width,C.height,'#0e172e');g.setTransform(scale,0,0,scale,ox,oy);g.save();if(shake>0)g.translate((rand(frame)-.5)*shake,(rand(frame+12)-.5)*shake);
@@ -796,8 +798,8 @@ function draw(){g.setTransform(1,0,0,1,0,0);R(0,0,C.width,C.height,'#0e172e');g.
    txt('LUTON 2140',W/2,175,25,'#9beae4','center');
    g.restore();
   }
- drawProgress();txt('ALL ON RED!  ·  LEVEL 3  ·  v0.12',16,H-11,10,'#c2e2da');g.restore();}
+ drawProgress();txt('ALL ON RED!  ·  LEVEL 3  ·  v0.13',16,H-11,10,'#c2e2da');g.restore();}
 function step(dt){let intendedCam=clamp(P.x-W*.32,0,END-W);if(film){let focus=film.key==='S01'?X(200):P.x;intendedCam=clamp(focus-W*.35,0,END-W);}camera=lerp(camera,intendedCam,clamp(dt*(film?2.4:6),0,1));update(dt);draw();}
 let last=0;function loop(now){let dt=last?clamp((now-last)/1000,0,.05):1/60;last=now;step(dt);requestAnimationFrame(loop);}updateHUD();requestAnimationFrame(loop);
-window.__L3={status:()=>({mode,x:Math.round(P.x),y:Math.round(P.y),scene:film?.key??null,line:film?.idx??null,memories:memory,hearts,played:[...triggered],audioKeys:Object.keys(VOICE_AUDIO).length,worldLength:END,sceneDistance:Math.round(P.x),sceneKeys:Object.keys(SCENES),marketHillSignX:MARKET_HILL_SIGN_X,robotsAlive:securityBots.filter(b=>b.hp>0).length,laserShots:laserShots.length,coinsFound,totalCoins:TOTAL_COINS,allCoinsAwarded,storyCompleted,climbProgress:P.climbProgress,power}),move:(x,y=GROUND)=>{P.x=x;P.y=y;P.vx=0;P.vy=0;P.on=true;},playScene:startFilm,finishScene:skipFilm,skipAll:()=>{if(film){film.idx=film.lines.length-1;advanceLine();}},triggerInteraction:handleInteract,citizens,personX:citizenPos,nearest:getNearest,allScenesAreFilm:AMBIENT_SCENES.size===0,platforms,sceneDefs:SCENES,moments,robots:securityBots,coinsList:chargePickups,heartDrops:healthPickups,quietDebug:()=>{for(const m of moments)triggered.add(m.key);if(film){film.idx=film.lines.length-1;advanceLine();}mode='play';},getVoice:(key)=>Boolean(VOICE_AUDIO[key]),tryClimb:()=>{const old=keys.up;keys.up=true;const r=attemptClimb();keys.up=old;return r;},takeCoins:()=>{for(const c of chargePickups)if(!c.bonus)c.taken=true;coinsFound=TOTAL_COINS;allCoinsAwarded=true;showCollectorResult();updateHUD();}};
+window.__L3={status:()=>({mode,x:Math.round(P.x),y:Math.round(P.y),scene:film?.key??null,line:film?.idx??null,memories:memory,hearts,played:[...triggered],audioKeys:Object.keys(VOICE_AUDIO).length,worldLength:END,sceneDistance:Math.round(P.x),sceneKeys:Object.keys(SCENES),marketHillSignX:MARKET_HILL_SIGN_X,studioCentreX:TWO_SIDE_STUDIOS_CENTRE_X,robotsAlive:securityBots.filter(b=>b.hp>0).length,laserShots:laserShots.length,coinsFound,totalCoins:TOTAL_COINS,allCoinsAwarded,storyCompleted,climbProgress:P.climbProgress,power}),move:(x,y=GROUND)=>{P.x=x;P.y=y;P.vx=0;P.vy=0;P.on=true;},playScene:startFilm,finishScene:skipFilm,skipAll:()=>{if(film){film.idx=film.lines.length-1;advanceLine();}},triggerInteraction:handleInteract,citizens,personX:citizenPos,nearest:getNearest,allScenesAreFilm:AMBIENT_SCENES.size===0,platforms,sceneDefs:SCENES,moments,robots:securityBots,coinsList:chargePickups,heartDrops:healthPickups,quietDebug:()=>{for(const m of moments)triggered.add(m.key);if(film){film.idx=film.lines.length-1;advanceLine();}mode='play';},getVoice:(key)=>Boolean(VOICE_AUDIO[key]),tryClimb:()=>{const old=keys.up;keys.up=true;const r=attemptClimb();keys.up=old;return r;},takeCoins:()=>{for(const c of chargePickups)if(!c.bonus)c.taken=true;coinsFound=TOTAL_COINS;allCoinsAwarded=true;showCollectorResult();updateHUD();}};
 })()</script></body></html>
