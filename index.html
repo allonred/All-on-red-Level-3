@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#10162e"><title>ALL ON RED! — LEVEL 3 · THE FUTURE · v0.16</title><style>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#10162e"><title>ALL ON RED! — LEVEL 3 · THE FUTURE · v0.17</title><style>
 :root{--ink:#171927;--cream:#fff2c6;--pink:#d63444}
 *{box-sizing:border-box;touch-action:none;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#18213b;color:#fff;font:900 13px system-ui,Arial,sans-serif;user-select:none;-webkit-user-select:none}
@@ -152,7 +152,7 @@ body.intro #skip{z-index:17;}
 <button id="skip">SKIP ▶▶</button>
 <div id="subtitle"><div class="who" id="speaker">RED MAN</div><div class="line" id="spoken">...</div></div><div id="prompt"></div><button id="contextAction" aria-label="Talk or examine">TALK</button>
 <div class="screen" id="menu"><div class="panel"><div class="logo">ALL ON RED!</div>
- <div class="subtitle">LEVEL 3 · THE FUTURE · v0.16</div>
+ <div class="subtitle">LEVEL 3 · THE FUTURE · v0.17</div>
  <div class="desc">The portal has thrown Red Man into a future full of flying cars, baffling citizens and mysterious goggles. Climb futuristic walkways, battle malfunctioning robots and explore. Collect all 27 coins for the optional 100% clear!</div>
  <button class="go" id="start">START LEVEL 3</button><button class="go" id="audioTestMenu" style="margin-left:7px;background:#295975;font-size:12px">♪ TEST SOUND</button>
  <div id="audioStatus" role="status" style="font-size:10px;font-weight:900;margin-top:4px">Audio: tap TEST SOUND to enable</div>
@@ -181,21 +181,56 @@ function playSfx(name,volume=.34){if(!audioOn||!SFX_AUDIO[name])return;
  try{
  if(sfxContext&&decodedSfx[name]&&sfxContext.state==='running'){
   const source=sfxContext.createBufferSource(),gain=sfxContext.createGain();
-  source.buffer=decodedSfx[name];gain.gain.value=clamp(volume*(audio.paused?1:.62),.02,.85);
+  source.buffer=decodedSfx[name];gain.gain.value=clamp(volume*(dialogueNeedsRoom()?.45:1),.02,.85);
   source.connect(gain);gain.connect(sfxContext.destination);source.start(0);source.onended=()=>{source.disconnect();gain.disconnect();};return;
  }
  if(sfxContext&&!decodedSfx[name])decodeSfx(name);
  if(!effects[name]){const raw=atob(SFX_AUDIO[name]),b=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)b[i]=raw.charCodeAt(i);effects[name]=URL.createObjectURL(new Blob([b],{type:'audio/mpeg'}));}
- const node=new Audio(effects[name]);node.volume=volume*(audio.paused?1:.42);node.play().catch(()=>{});
+ const node=new Audio(effects[name]);node.volume=clamp(volume*(dialogueNeedsRoom()?.45:1),0,1);node.play().catch(()=>{});
  node.onended=()=>{const i=effectChannels.indexOf(node);if(i>=0)effectChannels.splice(i,1);};effectChannels.push(node);if(effectChannels.length>16)effectChannels.shift().pause();
  }catch(e){}
 }
-const voices={};const music=new Audio();music.preload='auto';music.loop=true;music.volume=.17;let musicTrack=null,musicURL=null;
-function setMusic(track){if(musicTrack===track)return;musicTrack=track;music.pause();if(musicURL){URL.revokeObjectURL(musicURL);musicURL=null;}if(!audioOn||!MUSIC_AUDIO[track])return;try{const bytes=atob(MUSIC_AUDIO[track]),b=new Uint8Array(bytes.length);for(let i=0;i<bytes.length;i++)b[i]=bytes.charCodeAt(i);musicURL=URL.createObjectURL(new Blob([b],{type:'audio/mpeg'}));music.src=musicURL;music.volume=.17;let promise=music.play();if(promise)promise.catch(()=>{});}catch(e){}}
-const audio=new Audio();audio.onended=()=>{music.volume=.17;if(ambientTalk&&currentSoundKey===ambientTalk.lines[ambientTalk.idx]?.id)ambientTalk.finished=true;if(mode==='film'&&film&&currentSoundKey===film.lines[film.idx]?.id){film.voiceFinished=true;film.voiceEndTime=film.lineTime;}};audio.preload='auto';audio.volume=.94;let currentSoundKey=null,voiceUrl=null,filmAudioTimer=0;
+const voices={};const music=new Audio();music.preload='auto';music.loop=true;
+// Mix reference: game music 14%, spoken dialogue 1.4%. Keep the cutscene duck active
+// across narration and between the individual voice recordings, rather than resetting
+// the music after every spoken line.
+const MUSIC_NORMAL=.14,MUSIC_UNDER_SPEECH=.014;
+let musicLevel=MUSIC_NORMAL,voiceDucking=false,musicTrack=null,musicURL=null;
+music.volume=musicLevel;
+function hasSpokenFilm(){return mode==='film'&&!!film&&film.lines.some(l=>!!(l.id&&VOICE_AUDIO[l.id]));}
+function dialogueNeedsRoom(){return voiceDucking||hasSpokenFilm()||!!ambientTalk;}
+function updateAudioMix(dt){
+ const target=audioOn?(dialogueNeedsRoom()?MUSIC_UNDER_SPEECH:MUSIC_NORMAL):0;
+ // Fast fade down (90 ms), slower fade up (500 ms) to avoid volume pumping.
+ const tau=target<musicLevel?.09:.50;
+ musicLevel+=(target-musicLevel)*(1-Math.exp(-Math.max(0,dt)/tau));
+ music.volume=clamp(musicLevel,0,1);
+}
+function setMusic(track){if(musicTrack===track)return;musicTrack=track;music.pause();if(musicURL){URL.revokeObjectURL(musicURL);musicURL=null;}if(!audioOn||!MUSIC_AUDIO[track])return;try{const bytes=atob(MUSIC_AUDIO[track]),b=new Uint8Array(bytes.length);for(let i=0;i<bytes.length;i++)b[i]=bytes.charCodeAt(i);musicURL=URL.createObjectURL(new Blob([b],{type:'audio/mpeg'}));music.src=musicURL;music.volume=musicLevel;let promise=music.play();if(promise)promise.catch(()=>{});}catch(e){}}
+const audio=new Audio();
+audio.onended=()=>{
+ if(ambientTalk&&currentSoundKey===ambientTalk.lines[ambientTalk.idx]?.id)ambientTalk.finished=true;
+ if(mode==='film'&&film&&currentSoundKey===film.lines[film.idx]?.id){film.voiceFinished=true;film.voiceEndTime=film.lineTime;}
+ voiceDucking=false;
+ currentSoundKey=null;
+};
+audio.onerror=()=>{voiceDucking=false;};
+audio.preload='auto';audio.volume=.98;let currentSoundKey=null,voiceUrl=null,filmAudioTimer=0;
 function bytesToUrl(key){const b=VOICE_AUDIO[key];if(!b)return null;const raw=atob(b),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return URL.createObjectURL(new Blob([bytes],{type:'audio/mp4'}));}
-function playVoice(key){currentSoundKey=key;music.volume=.036;audio.pause();if(voiceUrl){URL.revokeObjectURL(voiceUrl);voiceUrl=null;}if(!audioOn||!VOICE_AUDIO[key])return false;try{voiceUrl=bytesToUrl(key);audio.src=voiceUrl;audio.currentTime=0;audio.volume=.94;const pr=audio.play();if(pr)pr.catch(()=>{});return true;}catch(e){return false;}}
-function stopVoice(){currentSoundKey=null;music.volume=.17;audio.pause();if(voiceUrl){URL.revokeObjectURL(voiceUrl);voiceUrl=null;}}
+function playVoice(key){
+ audio.pause();
+ voiceDucking=false;
+ currentSoundKey=null;
+ if(voiceUrl){URL.revokeObjectURL(voiceUrl);voiceUrl=null;}
+ if(!audioOn||!VOICE_AUDIO[key])return false;
+ try{
+  voiceUrl=bytesToUrl(key);audio.src=voiceUrl;audio.currentTime=0;audio.volume=.98;
+  currentSoundKey=key;voiceDucking=true;
+  const pr=audio.play();if(pr)pr.catch(()=>{if(currentSoundKey===key){voiceDucking=false;currentSoundKey=null;}});
+  return true;
+ }catch(e){voiceDucking=false;currentSoundKey=null;return false;}
+}
+function stopVoice(){currentSoundKey=null;voiceDucking=false;audio.pause();if(voiceUrl){URL.revokeObjectURL(voiceUrl);voiceUrl=null;}}
 function showSub(who,line,time=3){ui.speaker.textContent=who==='RED'?'RED MAN':who.replaceAll('_',' ');ui.spoken.textContent=line;ui.subtitle.style.display='block';subRemain=time;}
 function clearSub(){ui.subtitle.style.display='none';subRemain=0;}
 function msg(str,time=2.5){ui.prompt.textContent=str;ui.prompt.style.display='block';timerMessage=time;}
@@ -964,8 +999,8 @@ function draw(){g.setTransform(1,0,0,1,0,0);R(0,0,C.width,C.height,'#0e172e');g.
    txt('LUTON 2140',W/2,175,25,'#9beae4','center');
    g.restore();
   }
- drawProgress();txt('ALL ON RED!  ·  LEVEL 3  ·  v0.16',16,H-11,10,'#c2e2da');g.restore();}
-function step(dt){let intendedCam=clamp(P.x-W*.32,0,END-W);if(film){let focus=(film.key==='S01'||film.key==='INTRO')?X(200):P.x;intendedCam=clamp(focus-W*.35,0,END-W);}camera=lerp(camera,intendedCam,clamp(dt*(film?2.4:6),0,1));update(dt);draw();}
+ drawProgress();txt('ALL ON RED!  ·  LEVEL 3  ·  v0.17',16,H-11,10,'#c2e2da');g.restore();}
+function step(dt){updateAudioMix(dt);let intendedCam=clamp(P.x-W*.32,0,END-W);if(film){let focus=(film.key==='S01'||film.key==='INTRO')?X(200):P.x;intendedCam=clamp(focus-W*.35,0,END-W);}camera=lerp(camera,intendedCam,clamp(dt*(film?2.4:6),0,1));update(dt);draw();}
 let last=0;function loop(now){let dt=last?clamp((now-last)/1000,0,.05):1/60;last=now;step(dt);requestAnimationFrame(loop);}updateHUD();requestAnimationFrame(loop);
-window.__L3={status:()=>({mode,x:Math.round(P.x),y:Math.round(P.y),scene:film?.key??null,line:film?.idx??null,memories:memory,hearts,played:[...triggered],audioKeys:Object.keys(VOICE_AUDIO).length,worldLength:END,sceneDistance:Math.round(P.x),sceneKeys:Object.keys(SCENES),marketHillSignX:MARKET_HILL_SIGN_X,studioCentreX:TWO_SIDE_STUDIOS_CENTRE_X,xforceCentreX:X4RCE_CENTRE_X,robotsAlive:securityBots.filter(b=>b.hp>0).length,laserShots:laserShots.length,coinsFound,totalCoins:TOTAL_COINS,allCoinsAwarded,storyCompleted,climbProgress:P.climbProgress,power}),move:(x,y=GROUND)=>{P.x=x;P.y=y;P.vx=0;P.vy=0;P.on=true;},playScene:startFilm,finishScene:skipFilm,skipAll:()=>{if(film){film.idx=film.lines.length-1;advanceLine();}},triggerInteraction:handleInteract,citizens,personX:citizenPos,nearest:getNearest,allScenesAreFilm:AMBIENT_SCENES.size===0,platforms,sceneDefs:SCENES,moments,robots:securityBots,coinsList:chargePickups,heartDrops:healthPickups,quietDebug:()=>{for(const m of moments)triggered.add(m.key);if(film){film.idx=film.lines.length-1;advanceLine();}mode='play';},getVoice:(key)=>Boolean(VOICE_AUDIO[key]),sfxReady:()=>Object.keys(decodedSfx),controlKeys:keys,releaseControls:resetTouchControls,tryClimb:()=>{const old=keys.up;keys.up=true;const r=attemptClimb();keys.up=old;return r;},takeCoins:()=>{for(const c of chargePickups)if(!c.bonus)c.taken=true;coinsFound=TOTAL_COINS;allCoinsAwarded=true;showCollectorResult();updateHUD();}};
+window.__L3={audioMix:()=>({musicVolume:music.volume,musicTarget:dialogueNeedsRoom()?MUSIC_UNDER_SPEECH:MUSIC_NORMAL,voiceDucking,spokenFilm:hasSpokenFilm(),voiceKey:currentSoundKey}),status:()=>({mode,x:Math.round(P.x),y:Math.round(P.y),scene:film?.key??null,line:film?.idx??null,memories:memory,hearts,played:[...triggered],audioKeys:Object.keys(VOICE_AUDIO).length,worldLength:END,sceneDistance:Math.round(P.x),sceneKeys:Object.keys(SCENES),marketHillSignX:MARKET_HILL_SIGN_X,studioCentreX:TWO_SIDE_STUDIOS_CENTRE_X,xforceCentreX:X4RCE_CENTRE_X,robotsAlive:securityBots.filter(b=>b.hp>0).length,laserShots:laserShots.length,coinsFound,totalCoins:TOTAL_COINS,allCoinsAwarded,storyCompleted,climbProgress:P.climbProgress,power}),move:(x,y=GROUND)=>{P.x=x;P.y=y;P.vx=0;P.vy=0;P.on=true;},playScene:startFilm,finishScene:skipFilm,skipAll:()=>{if(film){film.idx=film.lines.length-1;advanceLine();}},triggerInteraction:handleInteract,citizens,personX:citizenPos,nearest:getNearest,allScenesAreFilm:AMBIENT_SCENES.size===0,platforms,sceneDefs:SCENES,moments,robots:securityBots,coinsList:chargePickups,heartDrops:healthPickups,quietDebug:()=>{for(const m of moments)triggered.add(m.key);if(film){film.idx=film.lines.length-1;advanceLine();}mode='play';},getVoice:(key)=>Boolean(VOICE_AUDIO[key]),sfxReady:()=>Object.keys(decodedSfx),controlKeys:keys,releaseControls:resetTouchControls,tryClimb:()=>{const old=keys.up;keys.up=true;const r=attemptClimb();keys.up=old;return r;},takeCoins:()=>{for(const c of chargePickups)if(!c.bonus)c.taken=true;coinsFound=TOTAL_COINS;allCoinsAwarded=true;showCollectorResult();updateHUD();}};
 })()</script></body></html>
